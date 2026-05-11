@@ -381,6 +381,7 @@ export default function App({ icons }) {
 }
 
 function ResultPanel({ result, isSavingScore, onRetry, onLeaderboard, RotateCcw, Trophy }) {
+  const showBurst = result.accuracy >= 90;
   return (
     <div
       className={[
@@ -392,7 +393,8 @@ function ResultPanel({ result, isSavingScore, onRetry, onLeaderboard, RotateCcw,
         .filter(Boolean)
         .join(' ')}
     >
-      {result.accuracy >= 95 && <div className="success-burst" aria-hidden="true" />}
+      <div className={`result-effect effect-${result.judgement.toLowerCase()}`} aria-hidden="true" />
+      {showBurst && <div className="success-burst" aria-hidden="true" />}
       <div className="score-readout">
         <strong>{result.accuracy}%</strong>
         <span>{getJudgementLabel(result.judgement)}</span>
