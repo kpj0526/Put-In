@@ -7,14 +7,11 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
-import { randomBytes, randomUUID } from 'crypto';
-import { IsNull, Repository } from 'typeorm';
-import { MailService } from '../mail/mail.service';
-import { User } from '../users/entities/user.entity';
+import { randomUUID } from 'crypto';
+import { Repository } from 'typeorm';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
-import { EmailVerificationToken } from './entities/email-verification-token.entity';
 import { RefreshToken } from './entities/refresh-token.entity';
 
 type TokenPair = {
@@ -30,13 +27,8 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-    private readonly mailService: MailService,
     @InjectRepository(RefreshToken)
     private readonly refreshTokensRepository: Repository<RefreshToken>,
-    @InjectRepository(EmailVerificationToken)
-    private readonly emailVerificationTokensRepository: Repository<EmailVerificationToken>,
-    @InjectRepository(User)
-    private readonly usersRepository: Repository<User>,
   ) {}
 
   async register(registerDto: RegisterDto) {
@@ -55,11 +47,12 @@ export class AuthService {
       passwordHash,
       nickname: registerDto.nickname,
     });
-    await this.sendVerification(user);
+    const tokens = await this.issueTokenPair(user);
 
     return {
       user: this.toPublicUser(user),
-      requiresEmailVerification: true,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
     };
   }
 
@@ -75,13 +68,6 @@ export class AuthService {
       });
     }
 
-    if (!user.emailVerifiedAt) {
-      throw new UnauthorizedException({
-        code: 'EMAIL_NOT_VERIFIED',
-        message: 'Please verify your email before logging in.',
-      });
-    }
-
     const tokens = await this.issueTokenPair(user);
 
     return {
@@ -89,55 +75,6 @@ export class AuthService {
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
     };
-  }
-
-  async verifyEmail(token: string) {
-    const tokenRecords = await this.emailVerificationTokensRepository.find({
-      where: { usedAt: IsNull() },
-      relations: { user: true },
-      order: { createdAt: 'DESC' },
-    });
-    const tokenRecord = await this.findMatchingEmailToken(token, tokenRecords);
-
-    if (!tokenRecord || tokenRecord.expiresAt.getTime() < Date.now()) {
-      throw new UnauthorizedException({
-        code: 'INVALID_EMAIL_VERIFICATION_TOKEN',
-        message: 'Email verification link is invalid or expired.',
-      });
-    }
-
-    const verifiedAt = new Date();
-    await this.emailVerificationTokensRepository.update(tokenRecord.id, {
-      usedAt: verifiedAt,
-    });
-    await this.usersRepository.update(tokenRecord.userId, {
-      emailVerifiedAt: verifiedAt,
-    });
-
-    const user = await this.usersService.findById(tokenRecord.userId);
-    if (!user) {
-      throw new UnauthorizedException({
-        code: 'UNAUTHORIZED',
-        message: 'User cannot be found.',
-      });
-    }
-
-    const tokens = await this.issueTokenPair(user);
-    return {
-      user: this.toPublicUser({ ...user, emailVerifiedAt: verifiedAt }),
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-    };
-  }
-
-  async resendVerification(email: string) {
-    const user = await this.usersService.findByEmail(email);
-    if (!user || user.emailVerifiedAt) {
-      return { message: 'If verification is needed, an email has been sent.' };
-    }
-
-    await this.sendVerification(user);
-    return { message: 'If verification is needed, an email has been sent.' };
   }
 
   async refresh(rawRefreshToken: string | undefined): Promise<TokenPair> {
@@ -178,7 +115,7 @@ export class AuthService {
     }
 
     const user = await this.usersService.findById(payload.sub);
-    if (!user || !user.emailVerifiedAt) {
+    if (!user) {
       throw this.invalidRefreshTokenException();
     }
 
@@ -238,41 +175,6 @@ export class AuthService {
         message: 'Nickname is already in use.',
       });
     }
-  }
-
-  private async sendVerification(user: User): Promise<void> {
-    await this.emailVerificationTokensRepository.update(
-      { userId: user.id, usedAt: IsNull() },
-      { usedAt: new Date() },
-    );
-
-    const token = randomBytes(32).toString('hex');
-    const tokenHash = await bcrypt.hash(token, 12);
-    await this.emailVerificationTokensRepository.save(
-      this.emailVerificationTokensRepository.create({
-        userId: user.id,
-        tokenHash,
-        expiresAt: new Date(Date.now() + this.getEmailVerificationExpiresMs()),
-      }),
-    );
-
-    await this.mailService.sendVerificationEmail({
-      to: user.email,
-      nickname: user.nickname,
-      token,
-    });
-  }
-
-  private async findMatchingEmailToken(
-    token: string,
-    tokenRecords: EmailVerificationToken[],
-  ): Promise<EmailVerificationToken | null> {
-    for (const tokenRecord of tokenRecords) {
-      if (await bcrypt.compare(token, tokenRecord.tokenHash)) {
-        return tokenRecord;
-      }
-    }
-    return null;
   }
 
   private async issueTokenPair(user: {
@@ -343,7 +245,6 @@ export class AuthService {
     id: string;
     email: string;
     nickname: string;
-    emailVerifiedAt: Date | null;
     createdAt: Date;
     updatedAt: Date;
   }) {
@@ -351,7 +252,6 @@ export class AuthService {
       id: user.id,
       email: user.email,
       nickname: user.nickname,
-      emailVerifiedAt: user.emailVerifiedAt,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -371,15 +271,6 @@ export class AuthService {
   private getRefreshExpiresMs(): number {
     return Number(
       this.configService.get<string>('JWT_REFRESH_EXPIRES_MS', '1209600000'),
-    );
-  }
-
-  private getEmailVerificationExpiresMs(): number {
-    return Number(
-      this.configService.get<string>(
-        'EMAIL_VERIFICATION_EXPIRES_MS',
-        '1800000',
-      ),
     );
   }
 }

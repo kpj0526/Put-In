@@ -28,16 +28,6 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
-  verifyEmail: (token) =>
-    request('/auth/verify-email', {
-      method: 'POST',
-      body: JSON.stringify({ token }),
-    }),
-  resendVerification: (email) =>
-    request('/auth/resend-verification', {
-      method: 'POST',
-      body: JSON.stringify({ email }),
-    }),
   login: (payload) =>
     request('/auth/login', {
       method: 'POST',

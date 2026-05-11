@@ -151,8 +151,7 @@ input:focus {
 }
 
 .field-hint,
-.error-text,
-.success-text {
+.error-text {
   margin: 0;
   font-size: 13px;
 }
@@ -163,14 +162,6 @@ input:focus {
 
 .error-text {
   color: var(--coral);
-}
-
-.success-text {
-  color: var(--mint);
-}
-
-.auth-extra {
-  margin-top: 14px;
 }
 
 .primary-button,

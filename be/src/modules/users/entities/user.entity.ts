@@ -23,9 +23,6 @@ export class User {
   @Column({ type: 'varchar', length: 12, unique: true })
   nickname!: string;
 
-  @Column({ name: 'email_verified_at', type: 'timestamp', nullable: true })
-  emailVerifiedAt!: Date | null;
-
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   createdAt!: Date;
 

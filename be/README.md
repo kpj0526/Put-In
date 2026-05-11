@@ -5,7 +5,6 @@ NestJS, PostgreSQL, TypeORM 기반 API 서버입니다.
 ## 주요 기능
 
 - 이메일 회원가입
-- 이메일 인증 메일 발송
 - 이메일 로그인
 - JWT access token 인증
 - HttpOnly cookie 기반 refresh token
@@ -40,16 +39,7 @@ JWT_ACCESS_EXPIRES=15m
 JWT_REFRESH_EXPIRES=14d
 JWT_REFRESH_EXPIRES_MS=1209600000
 
-EMAIL_VERIFICATION_EXPIRES_MS=1800000
-SMTP_HOST=
-SMTP_PORT=587
-SMTP_SECURE=false
-SMTP_USER=
-SMTP_PASS=
-MAIL_FROM=Plug Rush <no-reply@plugrush.local>
 ```
-
-`SMTP_HOST`가 비어 있으면 개발 편의를 위해 인증 링크를 서버 로그에 출력하고 메일은 발송하지 않습니다.
 
 ## 실행
 

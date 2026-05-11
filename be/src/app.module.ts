@@ -4,7 +4,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
-import { EmailVerificationToken } from './modules/auth/entities/email-verification-token.entity';
 import { RefreshToken } from './modules/auth/entities/refresh-token.entity';
 import { LeaderboardEntry } from './modules/leaderboard/entities/leaderboard-entry.entity';
 import { LeaderboardModule } from './modules/leaderboard/leaderboard.module';
@@ -29,7 +28,6 @@ import { UsersModule } from './modules/users/users.module';
           entities: [
             User,
             RefreshToken,
-            EmailVerificationToken,
             LeaderboardEntry,
           ],
           synchronize: configService.get<string>('DB_SYNC', 'false') === 'true',

@@ -13,8 +13,6 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
-import { ResendVerificationDto } from './dto/resend-verification.dto';
-import { VerifyEmailDto } from './dto/verify-email.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AuthService } from './auth.service';
 
@@ -31,8 +29,11 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ) {
     const result = await this.authService.register(registerDto);
-    response.clearCookie('refreshToken', { path: '/api/auth' });
-    return result;
+    this.setRefreshCookie(response, result.refreshToken);
+    return {
+      user: result.user,
+      accessToken: result.accessToken,
+    };
   }
 
   @Post('login')
@@ -46,24 +47,6 @@ export class AuthController {
       user: result.user,
       accessToken: result.accessToken,
     };
-  }
-
-  @Post('verify-email')
-  async verifyEmail(
-    @Body() verifyEmailDto: VerifyEmailDto,
-    @Res({ passthrough: true }) response: Response,
-  ) {
-    const result = await this.authService.verifyEmail(verifyEmailDto.token);
-    this.setRefreshCookie(response, result.refreshToken);
-    return {
-      user: result.user,
-      accessToken: result.accessToken,
-    };
-  }
-
-  @Post('resend-verification')
-  async resendVerification(@Body() resendDto: ResendVerificationDto) {
-    return this.authService.resendVerification(resendDto.email);
   }
 
   @Post('refresh')

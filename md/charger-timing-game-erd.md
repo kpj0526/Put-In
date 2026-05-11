@@ -300,26 +300,3 @@ MVP에서는 아래 테이블을 생성하지 않는다.
 | stages                    | 스테이지 기능 제외               |
 | achievements              | 업적 기능 제외                   |
 | user_achievements         | 업적 기능 제외                   |
-
-## 12. 이메일 인증 추가 설계
-
-이메일 인증 기능을 위해 `users.email_verified_at` 컬럼과 `email_verification_tokens` 테이블을 사용한다.
-
-### users 추가 컬럼
-
-| 컬럼명 | 타입 | Null | 기본값 | 설명 |
-| --- | --- | --- | --- | --- |
-| email_verified_at | timestamp | Y | null | 이메일 인증 완료 시간 |
-
-### email_verification_tokens
-
-| 컬럼명 | 타입 | Null | 기본값 | 설명 |
-| --- | --- | --- | --- | --- |
-| id | uuid | N | 자동 생성 | 토큰 ID |
-| user_id | uuid | N | 없음 | 유저 ID |
-| token_hash | varchar(255) | N | 없음 | 이메일 인증 토큰 해시 |
-| expires_at | timestamp | N | 없음 | 인증 토큰 만료 시간 |
-| used_at | timestamp | Y | null | 인증 완료 또는 폐기 시간 |
-| created_at | timestamp | N | 현재 시각 | 생성 시간 |
-
-이메일 인증 토큰은 원문을 저장하지 않고 해시만 저장한다.

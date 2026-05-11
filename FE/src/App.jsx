@@ -15,8 +15,6 @@ export default function App({ icons }) {
   const [user, setUser] = useState(null);
   const [authForm, setAuthForm] = useState(initialAuth);
   const [authError, setAuthError] = useState('');
-  const [authNotice, setAuthNotice] = useState('');
-  const [pendingEmail, setPendingEmail] = useState('');
   const [isBooting, setIsBooting] = useState(true);
   const [isSubmittingAuth, setIsSubmittingAuth] = useState(false);
   const [screen, setScreen] = useState('start');
@@ -32,21 +30,8 @@ export default function App({ icons }) {
 
   useEffect(() => {
     let mounted = true;
-    const params = new URLSearchParams(window.location.search);
-    const verifyToken = params.get('verifyToken');
-
     async function boot() {
       try {
-        if (verifyToken) {
-          const data = await api.verifyEmail(verifyToken);
-          if (!mounted) return;
-          setAccessToken(data.accessToken);
-          setUser(data.user);
-          setAuthNotice('Email verified. You are signed in.');
-          window.history.replaceState({}, '', window.location.pathname);
-          return;
-        }
-
         const { accessToken: refreshedToken } = await api.refresh();
         if (!mounted) return;
         setAccessToken(refreshedToken);
@@ -132,7 +117,6 @@ export default function App({ icons }) {
   async function handleAuthSubmit(event) {
     event.preventDefault();
     setAuthError('');
-    setAuthNotice('');
     setIsSubmittingAuth(true);
 
     try {
@@ -142,39 +126,18 @@ export default function App({ icons }) {
         ...(authForm.mode === 'register' ? { nickname: authForm.nickname } : {}),
       };
 
-      if (authForm.mode === 'register') {
-        await api.register(payload);
-        setPendingEmail(payload.email);
-        setAuthNotice('Verification email sent. Check your inbox.');
-        setAuthForm({ ...initialAuth, email: payload.email });
-        return;
-      }
-
-      const data = await api.login(payload);
+      const data =
+        authForm.mode === 'register'
+          ? await api.register(payload)
+          : await api.login(payload);
       setAccessToken(data.accessToken);
       setUser(data.user);
       setAuthForm(initialAuth);
       setScreen('start');
     } catch (error) {
       setAuthError(error.message);
-      if (error.code === 'EMAIL_NOT_VERIFIED') {
-        setPendingEmail(authForm.email);
-      }
     } finally {
       setIsSubmittingAuth(false);
-    }
-  }
-
-  async function resendVerification() {
-    const email = pendingEmail || authForm.email;
-    if (!email) return;
-    setAuthError('');
-    setAuthNotice('');
-    try {
-      await api.resendVerification(email);
-      setAuthNotice('Verification email sent again.');
-    } catch (error) {
-      setAuthError(error.message);
     }
   }
 
@@ -300,18 +263,11 @@ export default function App({ icons }) {
                 Password needs 8+ chars with uppercase, lowercase, number, and symbol.
               </p>
             )}
-            {authNotice && <p className="success-text">{authNotice}</p>}
             {authError && <p className="error-text">{authError}</p>}
             <button className="primary-button" disabled={isSubmittingAuth}>
               {authForm.mode === 'register' ? 'Create account' : 'Log in'}
             </button>
           </form>
-
-          {(pendingEmail || authError === 'Please verify your email before logging in.') && (
-            <button className="secondary-button wide auth-extra" onClick={resendVerification}>
-              Resend verification email
-            </button>
-          )}
 
           <button
             className="link-button"
