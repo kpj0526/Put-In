@@ -19,6 +19,7 @@ export default function App({ icons }) {
   const [isSubmittingAuth, setIsSubmittingAuth] = useState(false);
   const [screen, setScreen] = useState('start');
   const [gameState, setGameState] = useState('idle');
+  const [isResultVisible, setIsResultVisible] = useState(false);
   const [chargerPosition, setChargerPosition] = useState(12);
   const [direction, setDirection] = useState(1);
   const [result, setResult] = useState(null);
@@ -153,6 +154,7 @@ export default function App({ icons }) {
   function startGame() {
     setScreen('game');
     setGameState('playing');
+    setIsResultVisible(false);
     setResult(null);
     setChargerPosition(12);
     setDirection(1);
@@ -170,6 +172,7 @@ export default function App({ icons }) {
       saveError: '',
       isSaved: false,
     });
+    window.setTimeout(() => setIsResultVisible(true), 420);
     setIsSavingScore(true);
 
     try {
@@ -341,7 +344,7 @@ export default function App({ icons }) {
             </div>
           </div>
           {gameState === 'playing' && <p className="tap-label">TAP</p>}
-          {gameState === 'result' && result && (
+          {gameState === 'result' && result && isResultVisible && (
             <ResultPanel
               result={result}
               isSavingScore={isSavingScore}
