@@ -57,6 +57,7 @@ export default function App({ icons }) {
   const [leaderboardError, setLeaderboardError] = useState('');
   const [isSavingScore, setIsSavingScore] = useState(false);
   const [combo, setCombo] = useState(0);
+  const isInNoise = gameState === 'playing' && Math.abs(chargerPosition - obstaclePosition) <= 5;
   const frameRef = useRef(null);
   const lastFrameRef = useRef(null);
   const resultTimerRef = useRef(null);
@@ -393,7 +394,10 @@ export default function App({ icons }) {
       )}
 
       {screen === 'game' && (
-        <section className="game-stage" onPointerDown={stopCharger}>
+        <section
+          className={`game-stage ${isInNoise ? 'noise-active' : ''}`}
+          onPointerDown={stopCharger}
+        >
           <div className="battery-meter" aria-label="Battery 1%">
             <div style={{ width: `${result?.accuracy ?? 1}%` }} />
           </div>
@@ -414,6 +418,7 @@ export default function App({ icons }) {
               className={[
                 'charger',
                 gameState === 'result' ? 'stopped' : '',
+                isInNoise ? 'in-noise' : '',
                 result ? `judgement-${result.judgement.toLowerCase()}` : '',
                 result?.accuracy === 100 ? 'accuracy-perfect' : '',
                 result?.accuracy >= 95 && result?.accuracy < 100 ? 'accuracy-super' : '',

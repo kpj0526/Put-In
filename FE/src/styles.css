@@ -302,6 +302,23 @@ input:focus {
     rgba(20, 24, 31, 0.72);
 }
 
+.game-stage.noise-active {
+  animation: stageNoise 180ms linear infinite;
+}
+
+.game-stage.noise-active::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, transparent, rgba(255, 90, 106, 0.08), transparent),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 7px);
+  mix-blend-mode: screen;
+  opacity: 0.65;
+  animation: noiseScan 260ms steps(2) infinite;
+}
+
 .battery-meter,
 .charge-result {
   overflow: hidden;
@@ -428,6 +445,10 @@ input:focus {
   align-items: center;
   transform: translateX(-50%);
   transition: top 620ms cubic-bezier(0.22, 1, 0.36, 1) 140ms;
+}
+
+.charger.in-noise {
+  animation: plugNoise 120ms linear infinite;
 }
 
 .charger-head {
@@ -776,6 +797,47 @@ input:focus {
   50% {
     opacity: 1;
     filter: blur(1px);
+  }
+}
+
+@keyframes plugNoise {
+  0%,
+  100% {
+    margin-left: 0;
+    filter: none;
+  }
+  25% {
+    margin-left: -3px;
+    filter: drop-shadow(4px 0 0 rgba(255, 90, 106, 0.28));
+  }
+  50% {
+    margin-left: 3px;
+    filter: drop-shadow(-4px 0 0 rgba(88, 215, 255, 0.22));
+  }
+  75% {
+    margin-left: -2px;
+  }
+}
+
+@keyframes stageNoise {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  33% {
+    transform: translateX(-1px);
+  }
+  66% {
+    transform: translateX(1px);
+  }
+}
+
+@keyframes noiseScan {
+  0% {
+    transform: translateY(-8px);
+  }
+  100% {
+    transform: translateY(8px);
   }
 }
 
