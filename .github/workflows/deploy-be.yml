@@ -1,0 +1,95 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "be/**"
+      - ".github/workflows/deploy-be.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: be
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: be/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm run build
+
+  deploy:
+    name: Deploy backend to EC2
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          script: |
+            set -e
+
+            APP_DIR="/home/ec2-user/Put-In"
+            REPO_URL="https://github.com/kpj0526/Put-In.git"
+
+            if ! command -v node >/dev/null 2>&1; then
+              curl -fsSL https://rpm.nodesource.com/setup_22.x | sudo bash -
+              sudo dnf install -y nodejs
+            fi
+
+            if ! command -v git >/dev/null 2>&1; then
+              sudo dnf install -y git
+            fi
+
+            if ! command -v pnpm >/dev/null 2>&1; then
+              sudo npm install -g pnpm@10.33.0
+            fi
+
+            if ! command -v pm2 >/dev/null 2>&1; then
+              sudo npm install -g pm2
+            fi
+
+            if [ ! -d "$APP_DIR/.git" ]; then
+              rm -rf "$APP_DIR"
+              git clone "$REPO_URL" "$APP_DIR"
+            fi
+
+            cd "$APP_DIR"
+            git fetch origin main
+            git reset --hard origin/main
+
+            cd be
+            pnpm install --frozen-lockfile
+            pnpm run build
+
+            if pm2 describe put-in-be >/dev/null 2>&1; then
+              pm2 restart put-in-be --update-env
+            else
+              pm2 start dist/main.js --name put-in-be
+            fi
+
+            pm2 save
