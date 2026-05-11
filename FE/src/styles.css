@@ -347,7 +347,7 @@ input:focus {
   top: 38px;
   display: flex;
   align-items: center;
-  transform: translateX(-50%);
+  transform: translateX(-27px);
 }
 
 .charger-head {

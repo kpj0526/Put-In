@@ -25,6 +25,19 @@ export class LeaderboardService {
       });
     }
 
+    const currentBest = await this.leaderboardRepository.findOne({
+      where: { userId: user.id },
+      order: {
+        accuracy: 'DESC',
+        createdAt: 'ASC',
+      },
+    });
+
+    if (currentBest && currentBest.accuracy >= accuracy) {
+      const rank = await this.getRank(currentBest.id);
+      return this.toResponseEntry(currentBest, rank);
+    }
+
     const entry = await this.leaderboardRepository.save(
       this.leaderboardRepository.create({
         userId: user.id,
@@ -44,22 +57,34 @@ export class LeaderboardService {
         accuracy: 'DESC',
         createdAt: 'ASC',
       },
-      take: limit,
     });
 
-    return entries.map((entry, index) => this.toResponseEntry(entry, index + 1));
+    return this.getBestEntriesByUser(entries)
+      .slice(0, limit)
+      .map((entry, index) => this.toResponseEntry(entry, index + 1));
   }
 
   private async getRank(entryId: string): Promise<number> {
     const orderedEntries = await this.leaderboardRepository.find({
-      select: ['id'],
       order: {
         accuracy: 'DESC',
         createdAt: 'ASC',
       },
     });
-    const index = orderedEntries.findIndex((entry) => entry.id === entryId);
-    return index === -1 ? orderedEntries.length : index + 1;
+    const bestEntries = this.getBestEntriesByUser(orderedEntries);
+    const index = bestEntries.findIndex((entry) => entry.id === entryId);
+    return index === -1 ? bestEntries.length : index + 1;
+  }
+
+  private getBestEntriesByUser(entries: LeaderboardEntry[]): LeaderboardEntry[] {
+    const seenUserIds = new Set<string>();
+    return entries.filter((entry) => {
+      if (seenUserIds.has(entry.userId)) {
+        return false;
+      }
+      seenUserIds.add(entry.userId);
+      return true;
+    });
   }
 
   private getJudgement(accuracy: number): Judgement {
