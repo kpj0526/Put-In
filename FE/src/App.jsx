@@ -63,7 +63,7 @@ export default function App({ icons }) {
       lastFrameRef.current = time;
 
       setChargerPosition((position) => {
-        let nextPosition = position + direction * delta * 0.045;
+        let nextPosition = position + direction * delta * 0.062;
         let nextDirection = direction;
         if (nextPosition >= 88) {
           nextPosition = 88;
@@ -338,7 +338,13 @@ export default function App({ icons }) {
           <div className="track">
             <div className="target-line" />
             <div
-              className={`charger ${gameState === 'result' ? 'stopped' : ''}`}
+              className={[
+                'charger',
+                gameState === 'result' ? 'stopped' : '',
+                result ? `judgement-${result.judgement.toLowerCase()}` : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
               style={{ left: `${chargerPosition}%` }}
             >
               <span className="charger-head" />
