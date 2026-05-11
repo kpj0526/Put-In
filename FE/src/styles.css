@@ -333,13 +333,7 @@ input:focus {
 }
 
 .target-line {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 50%;
-  width: 2px;
-  background: rgba(255, 216, 77, 0.72);
-  box-shadow: 0 0 22px rgba(255, 216, 77, 0.6);
+  display: none;
 }
 
 .charger {
@@ -348,6 +342,7 @@ input:focus {
   display: flex;
   align-items: center;
   transform: translateX(-27px);
+  transition: top 260ms ease, transform 260ms ease;
 }
 
 .charger-head {
@@ -386,6 +381,11 @@ input:focus {
 
 .charger.stopped .charger-head {
   outline: 3px solid var(--mint);
+}
+
+.charger.stopped {
+  top: -18px;
+  transform: translateX(-27px) rotate(-90deg);
 }
 
 .tap-label {
