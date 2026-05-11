@@ -28,6 +28,7 @@ export default function App({ icons }) {
   const [isSavingScore, setIsSavingScore] = useState(false);
   const frameRef = useRef(null);
   const lastFrameRef = useRef(null);
+  const resultTimerRef = useRef(null);
 
   useEffect(() => {
     let mounted = true;
@@ -155,6 +156,7 @@ export default function App({ icons }) {
     setScreen('game');
     setGameState('playing');
     setIsResultVisible(false);
+    clearTimeout(resultTimerRef.current);
     setResult(null);
     setChargerPosition(12);
     setDirection(1);
@@ -172,7 +174,7 @@ export default function App({ icons }) {
       saveError: '',
       isSaved: false,
     });
-    window.setTimeout(() => setIsResultVisible(true), 420);
+    resultTimerRef.current = window.setTimeout(() => setIsResultVisible(true), 900);
     setIsSavingScore(true);
 
     try {

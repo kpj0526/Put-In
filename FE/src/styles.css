@@ -344,12 +344,12 @@ input:focus {
   flex-direction: column;
   align-items: center;
   transform: translateX(-50%);
-  transition: top 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: top 620ms cubic-bezier(0.22, 1, 0.36, 1) 140ms;
 }
 
 .charger-head {
   width: 54px;
-  height: 48px;
+  height: 46px;
   border-radius: 8px 8px 4px 4px;
   background: linear-gradient(180deg, #f7fbff, #b8c4d0);
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
@@ -359,11 +359,12 @@ input:focus {
 .charger-head::after {
   content: "";
   position: absolute;
-  top: 6px;
+  top: -26px;
   width: 8px;
-  height: 22px;
+  height: 28px;
   border-radius: 10px;
-  background: #b7c4cf;
+  background: #d3dee8;
+  box-shadow: 0 0 0 1px rgba(32, 39, 49, 0.12);
 }
 
 .charger-head::before {
@@ -386,7 +387,7 @@ input:focus {
 }
 
 .charger.stopped {
-  top: -68px;
+  top: -30px;
 }
 
 .tap-label {
