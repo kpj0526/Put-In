@@ -57,7 +57,7 @@ export default function App({ icons }) {
   const [leaderboardError, setLeaderboardError] = useState('');
   const [isSavingScore, setIsSavingScore] = useState(false);
   const [combo, setCombo] = useState(0);
-  const isInNoise = gameState === 'playing' && Math.abs(chargerPosition - obstaclePosition) <= 5;
+  const isInNoise = gameState === 'playing' && Math.abs(chargerPosition - obstaclePosition) <= 8;
   const frameRef = useRef(null);
   const lastFrameRef = useRef(null);
   const resultTimerRef = useRef(null);
@@ -405,6 +405,7 @@ export default function App({ icons }) {
             <span />
             <strong>NOISE</strong>
           </div>
+          {isInNoise && <div className="noise-alert" aria-hidden="true">NOISE</div>}
           <div className="combo-chip">
             {difficultyOptions[difficulty].label} · Combo x{combo}
           </div>
