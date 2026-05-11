@@ -338,11 +338,12 @@ input:focus {
 
 .charger {
   position: absolute;
-  top: 38px;
+  top: 18px;
   display: flex;
+  width: 54px;
+  flex-direction: column;
   align-items: center;
-  transform: translateX(-27px);
-  transition: top 260ms ease, transform 260ms ease;
+  transform: translateX(-50%);
 }
 
 .charger-head {
@@ -373,19 +374,14 @@ input:focus {
 }
 
 .charger-cable {
-  width: 130px;
-  height: 8px;
+  width: 8px;
+  height: 96px;
   background: #10151c;
   border-radius: 999px;
 }
 
 .charger.stopped .charger-head {
   outline: 3px solid var(--mint);
-}
-
-.charger.stopped {
-  top: -18px;
-  transform: translateX(-27px) rotate(-90deg);
 }
 
 .tap-label {
