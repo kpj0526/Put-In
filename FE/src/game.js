@@ -2,12 +2,14 @@ export function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
-export function calculateAccuracy(chargerPosition) {
-  const distance = Math.abs(chargerPosition - 50);
-  if (distance < 0.25) {
+export function calculateAccuracy(chargerPosition, targetPosition = 50, options = {}) {
+  const distance = Math.abs(chargerPosition - targetPosition);
+  const perfectWindow = options.perfectWindow ?? 0.25;
+  const distancePenalty = options.distancePenalty ?? 3.4;
+  if (distance < perfectWindow) {
     return 100;
   }
-  return clamp(Math.round(100 - distance * 3.4), 0, 100);
+  return clamp(Math.round(100 - distance * distancePenalty), 0, 100);
 }
 
 export function getJudgement(accuracy) {

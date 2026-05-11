@@ -1,6 +1,33 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from './api';
-import { calculateAccuracy, getJudgement, getJudgementLabel } from './game';
+import { calculateAccuracy, clamp, getJudgement, getJudgementLabel } from './game';
+
+const difficultyOptions = {
+  easy: {
+    label: 'Easy',
+    speed: 0.046,
+    acceleration: 0.035,
+    perfectWindow: 0.55,
+    distancePenalty: 2.9,
+    obstaclePenalty: 10,
+  },
+  normal: {
+    label: 'Normal',
+    speed: 0.058,
+    acceleration: 0.055,
+    perfectWindow: 0.34,
+    distancePenalty: 3.5,
+    obstaclePenalty: 15,
+  },
+  hard: {
+    label: 'Hard',
+    speed: 0.072,
+    acceleration: 0.075,
+    perfectWindow: 0.2,
+    distancePenalty: 4.15,
+    obstaclePenalty: 22,
+  },
+};
 
 const initialAuth = {
   mode: 'login',
@@ -20,15 +47,20 @@ export default function App({ icons }) {
   const [screen, setScreen] = useState('start');
   const [gameState, setGameState] = useState('idle');
   const [isResultVisible, setIsResultVisible] = useState(false);
+  const [difficulty, setDifficulty] = useState('normal');
   const [chargerPosition, setChargerPosition] = useState(12);
+  const [targetPosition, setTargetPosition] = useState(50);
+  const [obstaclePosition, setObstaclePosition] = useState(28);
   const [direction, setDirection] = useState(1);
   const [result, setResult] = useState(null);
   const [leaderboard, setLeaderboard] = useState([]);
   const [leaderboardError, setLeaderboardError] = useState('');
   const [isSavingScore, setIsSavingScore] = useState(false);
+  const [combo, setCombo] = useState(0);
   const frameRef = useRef(null);
   const lastFrameRef = useRef(null);
   const resultTimerRef = useRef(null);
+  const speedLevelRef = useRef(1);
 
   useEffect(() => {
     let mounted = true;
@@ -63,15 +95,18 @@ export default function App({ icons }) {
       lastFrameRef.current = time;
 
       setChargerPosition((position) => {
-        let nextPosition = position + direction * delta * 0.062;
+        const config = difficultyOptions[difficulty];
+        let nextPosition = position + direction * delta * config.speed * speedLevelRef.current;
         let nextDirection = direction;
         if (nextPosition >= 88) {
           nextPosition = 88;
           nextDirection = -1;
+          speedLevelRef.current += config.acceleration;
         }
         if (nextPosition <= 12) {
           nextPosition = 12;
           nextDirection = 1;
+          speedLevelRef.current += config.acceleration;
         }
         if (nextDirection !== direction) {
           setDirection(nextDirection);
@@ -87,7 +122,7 @@ export default function App({ icons }) {
       cancelAnimationFrame(frameRef.current);
       lastFrameRef.current = null;
     };
-  }, [direction, gameState]);
+  }, [difficulty, direction, gameState]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -153,26 +188,46 @@ export default function App({ icons }) {
   }
 
   function startGame() {
+    const nextTarget = Math.round(35 + Math.random() * 30);
+    const obstacleDirection = Math.random() > 0.5 ? 1 : -1;
+    const nextObstacle = clamp(nextTarget + obstacleDirection * (14 + Math.random() * 18), 14, 86);
     setScreen('game');
     setGameState('playing');
     setIsResultVisible(false);
     clearTimeout(resultTimerRef.current);
     setResult(null);
+    setTargetPosition(nextTarget);
+    setObstaclePosition(nextObstacle);
     setChargerPosition(12);
     setDirection(1);
+    speedLevelRef.current = 1;
   }
 
   async function stopCharger() {
     if (gameState !== 'playing') return;
-    const accuracy = calculateAccuracy(chargerPosition);
+    const config = difficultyOptions[difficulty];
+    const rawAccuracy = calculateAccuracy(chargerPosition, targetPosition, config);
+    const obstacleDistance = Math.abs(chargerPosition - obstaclePosition);
+    const obstacleHit = obstacleDistance <= 5;
+    const comboBonus = rawAccuracy >= 90 ? Math.min(combo * 2, 6) : 0;
+    const accuracy = clamp(
+      rawAccuracy + comboBonus - (obstacleHit ? config.obstaclePenalty : 0),
+      0,
+      100,
+    );
     const judgement = getJudgement(accuracy);
+    setCombo((currentCombo) => (accuracy >= 90 ? currentCombo + 1 : 0));
     setGameState('result');
     setResult({
       accuracy,
+      rawAccuracy,
       judgement,
       rank: null,
       saveError: '',
       isSaved: false,
+      obstacleHit,
+      comboBonus,
+      difficulty: config.label,
     });
     resultTimerRef.current = window.setTimeout(() => setIsResultVisible(true), 900);
     setIsSavingScore(true);
@@ -314,6 +369,17 @@ export default function App({ icons }) {
             <span>1%</span>
           </div>
           <h1>Plug it clean</h1>
+          <div className="difficulty-picker" aria-label="Difficulty">
+            {Object.entries(difficultyOptions).map(([key, option]) => (
+              <button
+                key={key}
+                className={difficulty === key ? 'active' : ''}
+                onClick={() => setDifficulty(key)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
           <div className="start-actions">
             <button className="primary-button huge" onClick={startGame}>
               Start
@@ -331,7 +397,14 @@ export default function App({ icons }) {
           <div className="battery-meter" aria-label="Battery 1%">
             <div style={{ width: `${result?.accuracy ?? 1}%` }} />
           </div>
-          <div className="socket">
+          <div className="hazard-zone" style={{ left: `${obstaclePosition}%` }}>
+            <span />
+            <strong>NOISE</strong>
+          </div>
+          <div className="combo-chip">
+            {difficultyOptions[difficulty].label} · Combo x{combo}
+          </div>
+          <div className="socket" style={{ left: `${targetPosition}%` }}>
             <div className="socket-hole" />
             <div className="socket-hole" />
           </div>
@@ -408,6 +481,11 @@ function ResultPanel({ result, isSavingScore, onRetry, onLeaderboard, RotateCcw,
           : result.saveError
             ? result.saveError
             : `Current rank #${result.rank}`}
+      </p>
+      <p className="result-meta">
+        {result.difficulty}
+        {result.comboBonus > 0 ? ` · Combo bonus +${result.comboBonus}` : ''}
+        {result.obstacleHit ? ` · Noise penalty` : ''}
       </p>
       <div className="result-actions">
         <button className="primary-button" onClick={onRetry}>
