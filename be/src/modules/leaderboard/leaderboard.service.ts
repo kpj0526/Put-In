@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { User } from '../users/entities/user.entity';
 import {
   Judgement,
+  LeaderboardDifficulty,
   LeaderboardEntry,
 } from './entities/leaderboard-entry.entity';
 
@@ -16,7 +17,11 @@ export class LeaderboardService {
     private readonly usersRepository: Repository<User>,
   ) {}
 
-  async create(userId: string, accuracy: number) {
+  async create(
+    userId: string,
+    accuracy: number,
+    difficulty: LeaderboardDifficulty = LeaderboardDifficulty.NORMAL,
+  ) {
     const user = await this.usersRepository.findOne({ where: { id: userId } });
     if (!user) {
       throw new UnauthorizedException({
@@ -26,7 +31,7 @@ export class LeaderboardService {
     }
 
     const currentBest = await this.leaderboardRepository.findOne({
-      where: { userId: user.id },
+      where: { userId: user.id, difficulty },
       order: {
         accuracy: 'DESC',
         createdAt: 'ASC',
@@ -34,7 +39,7 @@ export class LeaderboardService {
     });
 
     if (currentBest && currentBest.accuracy >= accuracy) {
-      const rank = await this.getRank(currentBest.id);
+      const rank = await this.getRank(currentBest.id, difficulty);
       return this.toResponseEntry(currentBest, rank);
     }
 
@@ -43,16 +48,21 @@ export class LeaderboardService {
         userId: user.id,
         nicknameSnapshot: user.nickname,
         accuracy,
+        difficulty,
         judgement: this.getJudgement(accuracy),
       }),
     );
 
-    const rank = await this.getRank(entry.id);
+    const rank = await this.getRank(entry.id, difficulty);
     return this.toResponseEntry(entry, rank);
   }
 
-  async findTop(limit: number) {
+  async findTop(
+    limit: number,
+    difficulty: LeaderboardDifficulty = LeaderboardDifficulty.NORMAL,
+  ) {
     const entries = await this.leaderboardRepository.find({
+      where: { difficulty },
       order: {
         accuracy: 'DESC',
         createdAt: 'ASC',
@@ -64,8 +74,12 @@ export class LeaderboardService {
       .map((entry, index) => this.toResponseEntry(entry, index + 1));
   }
 
-  private async getRank(entryId: string): Promise<number> {
+  private async getRank(
+    entryId: string,
+    difficulty: LeaderboardDifficulty,
+  ): Promise<number> {
     const orderedEntries = await this.leaderboardRepository.find({
+      where: { difficulty },
       order: {
         accuracy: 'DESC',
         createdAt: 'ASC',
@@ -113,6 +127,7 @@ export class LeaderboardService {
       userId: entry.userId,
       nickname: entry.nicknameSnapshot,
       accuracy: entry.accuracy,
+      difficulty: entry.difficulty,
       judgement: entry.judgement,
       createdAt: entry.createdAt,
     };

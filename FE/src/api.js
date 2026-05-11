@@ -39,11 +39,12 @@ export const api = {
     request('/auth/me', {
       headers: { Authorization: `Bearer ${accessToken}` },
     }),
-  saveScore: (accessToken, accuracy) =>
+  saveScore: (accessToken, accuracy, difficulty = 'normal') =>
     request('/leaderboard', {
       method: 'POST',
       headers: { Authorization: `Bearer ${accessToken}` },
-      body: JSON.stringify({ accuracy }),
+      body: JSON.stringify({ accuracy, difficulty }),
     }),
-  leaderboard: (limit = 10) => request(`/leaderboard?limit=${limit}`),
+  leaderboard: (limit = 10, difficulty = 'normal') =>
+    request(`/leaderboard?limit=${limit}&difficulty=${difficulty}`),
 };

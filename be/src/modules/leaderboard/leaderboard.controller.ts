@@ -19,13 +19,17 @@ export class LeaderboardController {
     const entry = await this.leaderboardService.create(
       currentUser.sub,
       createDto.accuracy,
+      createDto.difficulty,
     );
     return { entry };
   }
 
   @Get()
   async findTop(@Query() query: GetLeaderboardQueryDto) {
-    const entries = await this.leaderboardService.findTop(query.limit);
+    const entries = await this.leaderboardService.findTop(
+      query.limit,
+      query.difficulty,
+    );
     return { entries };
   }
 }

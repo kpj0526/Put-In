@@ -18,7 +18,14 @@ export enum Judgement {
   MISS = 'MISS',
 }
 
+export enum LeaderboardDifficulty {
+  EASY = 'easy',
+  NORMAL = 'normal',
+  HARD = 'hard',
+}
+
 @Index('idx_leaderboard_entries_rank', ['accuracy', 'createdAt'])
+@Index('idx_leaderboard_entries_difficulty_rank', ['difficulty', 'accuracy', 'createdAt'])
 @Entity({ name: 'leaderboard_entries' })
 export class LeaderboardEntry {
   @PrimaryGeneratedColumn('uuid')
@@ -32,6 +39,9 @@ export class LeaderboardEntry {
 
   @Column({ type: 'smallint' })
   accuracy!: number;
+
+  @Column({ type: 'varchar', length: 10, default: LeaderboardDifficulty.NORMAL })
+  difficulty!: LeaderboardDifficulty;
 
   @Column({ type: 'varchar', length: 20 })
   judgement!: Judgement;

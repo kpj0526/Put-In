@@ -48,6 +48,7 @@ export default function App({ icons }) {
   const [gameState, setGameState] = useState('idle');
   const [isResultVisible, setIsResultVisible] = useState(false);
   const [difficulty, setDifficulty] = useState('normal');
+  const [leaderboardDifficulty, setLeaderboardDifficulty] = useState('normal');
   const [chargerPosition, setChargerPosition] = useState(12);
   const [targetPosition, setTargetPosition] = useState(50);
   const [obstaclePosition, setObstaclePosition] = useState(28);
@@ -140,12 +141,12 @@ export default function App({ icons }) {
 
   useEffect(() => {
     loadLeaderboard();
-  }, []);
+  }, [leaderboardDifficulty]);
 
   async function loadLeaderboard() {
     setLeaderboardError('');
     try {
-      const data = await api.leaderboard(10);
+      const data = await api.leaderboard(10, leaderboardDifficulty);
       setLeaderboard(data.entries ?? []);
     } catch (error) {
       setLeaderboardError(error.message);
@@ -234,7 +235,7 @@ export default function App({ icons }) {
     setIsSavingScore(true);
 
     try {
-      const data = await api.saveScore(accessToken, accuracy);
+      const data = await api.saveScore(accessToken, accuracy, difficulty);
       setResult((current) => ({
         ...current,
         rank: data.entry.rank,
@@ -385,7 +386,13 @@ export default function App({ icons }) {
             <button className="primary-button huge" onClick={startGame}>
               Start
             </button>
-            <button className="secondary-button" onClick={() => setScreen('leaderboard')}>
+            <button
+              className="secondary-button"
+              onClick={() => {
+                setLeaderboardDifficulty(difficulty);
+                setScreen('leaderboard');
+              }}
+            >
               <Trophy size={18} />
               Leaderboard
             </button>
@@ -438,7 +445,10 @@ export default function App({ icons }) {
               result={result}
               isSavingScore={isSavingScore}
               onRetry={startGame}
-              onLeaderboard={() => setScreen('leaderboard')}
+              onLeaderboard={() => {
+                setLeaderboardDifficulty(difficulty);
+                setScreen('leaderboard');
+              }}
               RotateCcw={RotateCcw}
               Trophy={Trophy}
             />
@@ -450,6 +460,9 @@ export default function App({ icons }) {
         <LeaderboardPanel
           entries={leaderboard}
           error={leaderboardError}
+          activeDifficulty={leaderboardDifficulty}
+          difficultyOptions={difficultyOptions}
+          onDifficultyChange={setLeaderboardDifficulty}
           onReload={loadLeaderboard}
           onBack={() => setScreen('start')}
           Trophy={Trophy}
@@ -507,7 +520,16 @@ function ResultPanel({ result, isSavingScore, onRetry, onLeaderboard, RotateCcw,
   );
 }
 
-function LeaderboardPanel({ entries, error, onReload, onBack, Trophy }) {
+function LeaderboardPanel({
+  entries,
+  error,
+  activeDifficulty,
+  difficultyOptions,
+  onDifficultyChange,
+  onReload,
+  onBack,
+  Trophy,
+}) {
   return (
     <section className="leaderboard-stage">
       <div className="section-heading">
@@ -516,6 +538,17 @@ function LeaderboardPanel({ entries, error, onReload, onBack, Trophy }) {
           <p>TOP 10</p>
           <h1>Leaderboard</h1>
         </div>
+      </div>
+      <div className="leaderboard-tabs" aria-label="Leaderboard difficulty">
+        {Object.entries(difficultyOptions).map(([key, option]) => (
+          <button
+            key={key}
+            className={activeDifficulty === key ? 'active' : ''}
+            onClick={() => onDifficultyChange(key)}
+          >
+            {option.label}
+          </button>
+        ))}
       </div>
       {error && (
         <div className="empty-state">
@@ -532,7 +565,9 @@ function LeaderboardPanel({ entries, error, onReload, onBack, Trophy }) {
               <span className="rank">#{entry.rank}</span>
               <span className="nickname">{entry.nickname}</span>
               <span className="accuracy">{entry.accuracy}%</span>
-              <span className="judgement">{getJudgementLabel(entry.judgement)}</span>
+              <span className="judgement">
+                {getJudgementLabel(entry.judgement)}
+              </span>
             </li>
           ))}
         </ol>
