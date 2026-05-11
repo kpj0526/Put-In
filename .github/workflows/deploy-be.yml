@@ -83,7 +83,7 @@ jobs:
             git reset --hard origin/main
 
             cd be
-            pnpm install --frozen-lockfile
+            pnpm install --frozen-lockfile --config.dangerouslyAllowAllBuilds=true
             pnpm run build
 
             if pm2 describe put-in-be >/dev/null 2>&1; then
