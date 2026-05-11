@@ -1,0 +1,15 @@
+version: 1.0
+runtime: nodejs22
+build:
+  commands:
+    pre-build:
+      - npm install -g pnpm@10.33.0
+    build:
+      - pnpm install --frozen-lockfile
+      - pnpm run build
+run:
+  runtime-version: 22.21.1
+  command: node dist/main
+  network:
+    port: 3000
+    env: PORT
