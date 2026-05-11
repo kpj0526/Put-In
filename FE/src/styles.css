@@ -422,6 +422,14 @@ input:focus {
   animation: chargeSuccess 520ms ease both;
 }
 
+.charger.stopped.accuracy-super .charger-head {
+  animation: chargeSuper 780ms ease both;
+}
+
+.charger.stopped.accuracy-perfect .charger-head {
+  animation: chargePerfect 980ms ease both;
+}
+
 .charger.stopped.judgement-good .charger-head {
   animation: chargeGood 520ms ease both;
 }
@@ -450,6 +458,40 @@ input:focus {
   transform: translateX(-50%);
   border-radius: 8px;
   text-align: center;
+}
+
+.result-panel.accuracy-perfect {
+  animation: perfectPanel 520ms cubic-bezier(0.18, 1.4, 0.32, 1) both;
+}
+
+.result-panel.accuracy-super {
+  animation: superPanel 460ms cubic-bezier(0.18, 1.2, 0.32, 1) both;
+}
+
+.success-burst {
+  position: absolute;
+  inset: -42px;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle, rgba(255, 216, 77, 0.32) 0 8%, transparent 9%),
+    conic-gradient(
+      from 0deg,
+      transparent 0deg 20deg,
+      rgba(49, 245, 166, 0.62) 20deg 28deg,
+      transparent 28deg 58deg,
+      rgba(255, 216, 77, 0.7) 58deg 66deg,
+      transparent 66deg 102deg,
+      rgba(88, 215, 255, 0.54) 102deg 110deg,
+      transparent 110deg 360deg
+    );
+  border-radius: 18px;
+  filter: blur(0.2px);
+  animation: successBurst 720ms ease-out both;
+}
+
+.result-panel.accuracy-perfect .success-burst {
+  animation: perfectBurst 960ms ease-out both;
 }
 
 .result-panel.judgement-perfect_charge,
@@ -599,6 +641,40 @@ input:focus {
   }
 }
 
+@keyframes chargeSuper {
+  0% {
+    filter: brightness(1);
+    transform: translateY(0);
+  }
+  35% {
+    filter: brightness(1.5) drop-shadow(0 0 24px rgba(49, 245, 166, 0.86));
+    transform: translateY(-2px);
+  }
+  100% {
+    filter: brightness(1.12) drop-shadow(0 0 14px rgba(49, 245, 166, 0.55));
+    transform: translateY(0);
+  }
+}
+
+@keyframes chargePerfect {
+  0% {
+    filter: brightness(1);
+    transform: scale(1);
+  }
+  25% {
+    filter: brightness(1.7) drop-shadow(0 0 34px rgba(255, 216, 77, 0.9));
+    transform: scale(1.08);
+  }
+  50% {
+    filter: brightness(1.45) drop-shadow(0 0 28px rgba(49, 245, 166, 0.95));
+    transform: scale(0.98);
+  }
+  100% {
+    filter: brightness(1.18) drop-shadow(0 0 18px rgba(49, 245, 166, 0.65));
+    transform: scale(1);
+  }
+}
+
 @keyframes chargeGood {
   0%,
   100% {
@@ -637,6 +713,65 @@ input:focus {
   to {
     opacity: 1;
     transform: translate(-50%, 0) scale(1);
+  }
+}
+
+@keyframes superPanel {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 18px) scale(0.94);
+  }
+  70% {
+    opacity: 1;
+    transform: translate(-50%, -3px) scale(1.03);
+  }
+  100% {
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+@keyframes perfectPanel {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 18px) scale(0.9);
+  }
+  45% {
+    opacity: 1;
+    transform: translate(-50%, -7px) scale(1.08);
+  }
+  72% {
+    transform: translate(-50%, 2px) scale(0.99);
+  }
+  100% {
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+@keyframes successBurst {
+  0% {
+    opacity: 0;
+    transform: scale(0.55) rotate(-12deg);
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.2) rotate(18deg);
+  }
+}
+
+@keyframes perfectBurst {
+  0% {
+    opacity: 0;
+    transform: scale(0.45) rotate(-20deg);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.45) rotate(35deg);
   }
 }
 

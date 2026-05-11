@@ -342,6 +342,8 @@ export default function App({ icons }) {
                 'charger',
                 gameState === 'result' ? 'stopped' : '',
                 result ? `judgement-${result.judgement.toLowerCase()}` : '',
+                result?.accuracy === 100 ? 'accuracy-perfect' : '',
+                result?.accuracy >= 95 && result?.accuracy < 100 ? 'accuracy-super' : '',
               ]
                 .filter(Boolean)
                 .join(' ')}
@@ -380,7 +382,17 @@ export default function App({ icons }) {
 
 function ResultPanel({ result, isSavingScore, onRetry, onLeaderboard, RotateCcw, Trophy }) {
   return (
-    <div className={`result-panel judgement-${result.judgement.toLowerCase()}`}>
+    <div
+      className={[
+        'result-panel',
+        `judgement-${result.judgement.toLowerCase()}`,
+        result.accuracy === 100 ? 'accuracy-perfect' : '',
+        result.accuracy >= 95 && result.accuracy < 100 ? 'accuracy-super' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
+      {result.accuracy >= 95 && <div className="success-burst" aria-hidden="true" />}
       <div className="score-readout">
         <strong>{result.accuracy}%</strong>
         <span>{getJudgementLabel(result.judgement)}</span>
