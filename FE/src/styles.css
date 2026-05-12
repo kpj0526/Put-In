@@ -407,8 +407,9 @@ input:focus {
 
 .phase-hud {
   position: absolute;
-  top: 54px;
+  top: 86px;
   left: 22px;
+  z-index: 4;
   display: grid;
   gap: 2px;
 }
@@ -738,6 +739,39 @@ input:focus {
   display: grid;
   place-items: center;
   padding: 150px 32px 96px;
+}
+
+.plug-anchor-scene {
+  position: absolute;
+  top: 30%;
+  transform: translateX(-50%);
+}
+
+.socket-anchored {
+  position: relative;
+  top: auto;
+  left: auto;
+  transform: none;
+}
+
+.charger-plugged {
+  position: absolute;
+  top: 42px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.charger-plugged .charger-head {
+  outline: 3px solid var(--mint);
+}
+
+.plugged-visual {
+  width: 74px;
+}
+
+.plugged-visual .charger-cable {
+  height: 88px;
+  margin-top: 4px;
 }
 
 .timing-stage-header {
@@ -1375,6 +1409,10 @@ input:focus {
 
   .timing-stage {
     padding: 156px 18px 96px;
+  }
+
+  .plug-anchor-scene {
+    top: 28%;
   }
 
   .timing-stage-header strong {
