@@ -1,31 +1,42 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from './api';
-import { calculateAccuracy, clamp, getJudgement, getJudgementLabel } from './game';
+import {
+  calculateAccuracy,
+  clamp,
+  getJudgement,
+  getJudgementLabel,
+  summarizeChain,
+} from './game';
+
+const CHAIN_LENGTH = 3;
 
 const difficultyOptions = {
   easy: {
     label: 'Easy',
     speed: 0.046,
-    acceleration: 0.035,
-    perfectWindow: 0.55,
-    distancePenalty: 2.9,
-    obstaclePenalty: 10,
+    acceleration: 0.03,
+    perfectWindow: 0.6,
+    distancePenalty: 2.8,
+    obstaclePenalty: 8,
+    targetSpeed: 0.012,
   },
   normal: {
     label: 'Normal',
     speed: 0.058,
-    acceleration: 0.055,
-    perfectWindow: 0.34,
-    distancePenalty: 3.5,
-    obstaclePenalty: 15,
+    acceleration: 0.05,
+    perfectWindow: 0.36,
+    distancePenalty: 3.4,
+    obstaclePenalty: 14,
+    targetSpeed: 0.016,
   },
   hard: {
     label: 'Hard',
     speed: 0.072,
-    acceleration: 0.075,
-    perfectWindow: 0.2,
-    distancePenalty: 4.15,
-    obstaclePenalty: 22,
+    acceleration: 0.07,
+    perfectWindow: 0.22,
+    distancePenalty: 4.1,
+    obstaclePenalty: 20,
+    targetSpeed: 0.021,
   },
 };
 
@@ -35,6 +46,23 @@ const initialAuth = {
   password: '',
   nickname: '',
 };
+
+function createPhase(index, difficulty) {
+  const baseTarget = 42 + Math.random() * 16;
+  const obstacleDirection = Math.random() > 0.5 ? 1 : -1;
+  const obstacleOffset = 16 + Math.random() * 10;
+  const chargerStartsLeft = index % 2 === 0;
+
+  return {
+    id: `${difficulty}-${index}-${Date.now()}-${Math.random()}`,
+    targetPosition: clamp(baseTarget, 28, 72),
+    targetDirection: Math.random() > 0.5 ? 1 : -1,
+    obstaclePosition: clamp(baseTarget + obstacleDirection * obstacleOffset, 14, 86),
+    chargerPosition: chargerStartsLeft ? 12 : 88,
+    direction: chargerStartsLeft ? 1 : -1,
+    speedLevel: 1 + index * 0.08,
+  };
+}
 
 export default function App({ icons }) {
   const { BatteryCharging, LogOut, PlugZap, RotateCcw, Trophy } = icons;
@@ -53,16 +81,23 @@ export default function App({ icons }) {
   const [targetPosition, setTargetPosition] = useState(50);
   const [obstaclePosition, setObstaclePosition] = useState(28);
   const [direction, setDirection] = useState(1);
+  const [targetDirection, setTargetDirection] = useState(1);
   const [result, setResult] = useState(null);
   const [leaderboard, setLeaderboard] = useState([]);
   const [leaderboardError, setLeaderboardError] = useState('');
   const [isSavingScore, setIsSavingScore] = useState(false);
-  const [combo, setCombo] = useState(0);
+  const [phaseIndex, setPhaseIndex] = useState(0);
+  const [phaseResults, setPhaseResults] = useState([]);
+  const [phaseFlash, setPhaseFlash] = useState(null);
   const isInNoise = gameState === 'playing' && Math.abs(chargerPosition - obstaclePosition) <= 8;
   const frameRef = useRef(null);
   const lastFrameRef = useRef(null);
   const resultTimerRef = useRef(null);
+  const phaseTimerRef = useRef(null);
   const speedLevelRef = useRef(1);
+  const currentPhaseRef = useRef(null);
+  const beatSoundRef = useRef(null);
+  const resultSoundRef = useRef(null);
 
   useEffect(() => {
     let mounted = true;
@@ -95,11 +130,12 @@ export default function App({ icons }) {
       const lastFrame = lastFrameRef.current ?? time;
       const delta = Math.min(time - lastFrame, 32);
       lastFrameRef.current = time;
+      const config = difficultyOptions[difficulty];
 
       setChargerPosition((position) => {
-        const config = difficultyOptions[difficulty];
         let nextPosition = position + direction * delta * config.speed * speedLevelRef.current;
         let nextDirection = direction;
+
         if (nextPosition >= 88) {
           nextPosition = 88;
           nextDirection = -1;
@@ -116,6 +152,24 @@ export default function App({ icons }) {
         return nextPosition;
       });
 
+      setTargetPosition((position) => {
+        let nextPosition = position + targetDirection * delta * config.targetSpeed;
+        let nextDirection = targetDirection;
+
+        if (nextPosition >= 70) {
+          nextPosition = 70;
+          nextDirection = -1;
+        }
+        if (nextPosition <= 30) {
+          nextPosition = 30;
+          nextDirection = 1;
+        }
+        if (nextDirection !== targetDirection) {
+          setTargetDirection(nextDirection);
+        }
+        return nextPosition;
+      });
+
       frameRef.current = requestAnimationFrame(tick);
     };
 
@@ -124,7 +178,7 @@ export default function App({ icons }) {
       cancelAnimationFrame(frameRef.current);
       lastFrameRef.current = null;
     };
-  }, [difficulty, direction, gameState]);
+  }, [difficulty, direction, gameState, targetDirection]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -142,6 +196,31 @@ export default function App({ icons }) {
   useEffect(() => {
     loadLeaderboard();
   }, [leaderboardDifficulty]);
+
+  useEffect(() => {
+    return () => {
+      clearTimeout(resultTimerRef.current);
+      clearTimeout(phaseTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    const beatSound = new Audio('/beat-pop.mp3');
+    beatSound.preload = 'auto';
+    beatSound.volume = 0.12;
+    beatSoundRef.current = beatSound;
+    const resultSound = new Audio('/charge-tick.mp3');
+    resultSound.preload = 'auto';
+    resultSound.volume = 0.14;
+    resultSoundRef.current = resultSound;
+
+    return () => {
+      beatSound.pause();
+      resultSound.pause();
+      beatSoundRef.current = null;
+      resultSoundRef.current = null;
+    };
+  }, []);
 
   async function loadLeaderboard() {
     setLeaderboardError('');
@@ -189,53 +268,91 @@ export default function App({ icons }) {
     setScreen('start');
   }
 
+  function applyPhase(nextPhase, nextIndex, nextResults = []) {
+    currentPhaseRef.current = nextPhase;
+    setPhaseIndex(nextIndex);
+    setPhaseResults(nextResults);
+    setPhaseFlash(null);
+    setTargetPosition(nextPhase.targetPosition);
+    setTargetDirection(nextPhase.targetDirection);
+    setObstaclePosition(nextPhase.obstaclePosition);
+    setChargerPosition(nextPhase.chargerPosition);
+    setDirection(nextPhase.direction);
+    speedLevelRef.current = nextPhase.speedLevel;
+  }
+
   function startGame() {
-    const nextTarget = Math.round(35 + Math.random() * 30);
-    const obstacleDirection = Math.random() > 0.5 ? 1 : -1;
-    const nextObstacle = clamp(nextTarget + obstacleDirection * (14 + Math.random() * 18), 14, 86);
+    clearTimeout(resultTimerRef.current);
+    clearTimeout(phaseTimerRef.current);
+    const openingPhase = createPhase(0, difficulty);
+    applyPhase(openingPhase, 0, []);
     setScreen('game');
     setGameState('playing');
     setIsResultVisible(false);
-    clearTimeout(resultTimerRef.current);
     setResult(null);
-    setTargetPosition(nextTarget);
-    setObstaclePosition(nextObstacle);
-    setChargerPosition(12);
-    setDirection(1);
-    speedLevelRef.current = 1;
   }
 
-  async function stopCharger() {
-    if (gameState !== 'playing') return;
+  function queueNextPhase(nextResults) {
+    const nextIndex = nextResults.length;
+    if (nextIndex >= CHAIN_LENGTH) {
+      finalizeRun(nextResults);
+      return;
+    }
+
+    const nextPhase = createPhase(nextIndex, difficulty);
+    phaseTimerRef.current = window.setTimeout(() => {
+      applyPhase(nextPhase, nextIndex, nextResults);
+      setGameState('playing');
+    }, 850);
+  }
+
+  function playBeatSound(accuracy) {
+    const beatSound = beatSoundRef.current;
+    if (!beatSound) return;
+
+    beatSound.pause();
+    beatSound.currentTime = 0;
+    beatSound.playbackRate = accuracy >= 90 ? 1.06 : accuracy >= 70 ? 1.02 : 0.98;
+    beatSound.volume = accuracy >= 90 ? 0.16 : accuracy >= 70 ? 0.13 : 0.1;
+    beatSound.play().catch(() => {});
+  }
+
+  function playResultSound(accuracy) {
+    const resultSound = resultSoundRef.current;
+    if (!resultSound) return;
+
+    resultSound.pause();
+    resultSound.currentTime = 0;
+    resultSound.playbackRate = accuracy >= 90 ? 1 : 0.94;
+    resultSound.volume = accuracy >= 90 ? 0.18 : accuracy >= 70 ? 0.13 : 0.08;
+    resultSound.play().catch(() => {});
+  }
+
+  async function finalizeRun(phases) {
     const config = difficultyOptions[difficulty];
-    const rawAccuracy = calculateAccuracy(chargerPosition, targetPosition, config);
-    const obstacleDistance = Math.abs(chargerPosition - obstaclePosition);
-    const obstacleHit = obstacleDistance <= 5;
-    const comboBonus = rawAccuracy >= 90 ? Math.min(combo * 2, 6) : 0;
-    const accuracy = clamp(
-      rawAccuracy + comboBonus - (obstacleHit ? config.obstaclePenalty : 0),
-      0,
-      100,
-    );
-    const judgement = getJudgement(accuracy);
-    setCombo((currentCombo) => (accuracy >= 90 ? currentCombo + 1 : 0));
+    const summary = summarizeChain(phases);
+    const judgement = getJudgement(summary.accuracy);
+    playResultSound(summary.accuracy);
+
     setGameState('result');
     setResult({
-      accuracy,
-      rawAccuracy,
+      accuracy: summary.accuracy,
+      rawAccuracy: summary.averageAccuracy,
       judgement,
       rank: null,
       saveError: '',
       isSaved: false,
-      obstacleHit,
-      comboBonus,
       difficulty: config.label,
+      phases,
+      consistencyBonus: summary.consistencyBonus,
+      perfectCount: summary.perfectCount,
+      obstacleHits: summary.obstacleHits,
     });
-    resultTimerRef.current = window.setTimeout(() => setIsResultVisible(true), 900);
+    resultTimerRef.current = window.setTimeout(() => setIsResultVisible(true), 700);
     setIsSavingScore(true);
 
     try {
-      const data = await api.saveScore(accessToken, accuracy, difficulty);
+      const data = await api.saveScore(accessToken, summary.accuracy, difficulty);
       setResult((current) => ({
         ...current,
         rank: data.entry.rank,
@@ -251,6 +368,43 @@ export default function App({ icons }) {
       setIsSavingScore(false);
     }
   }
+
+  function stopCharger() {
+    if (gameState !== 'playing') return;
+    const config = difficultyOptions[difficulty];
+    const rawAccuracy = calculateAccuracy(chargerPosition, targetPosition, config);
+    const obstacleDistance = Math.abs(chargerPosition - obstaclePosition);
+    const obstacleHit = obstacleDistance <= 5;
+    const phaseAccuracy = clamp(rawAccuracy - (obstacleHit ? config.obstaclePenalty : 0), 0, 100);
+    const phaseJudgement = getJudgement(phaseAccuracy);
+    const nextResults = [
+      ...phaseResults,
+      {
+        step: phaseIndex + 1,
+        accuracy: phaseAccuracy,
+        rawAccuracy,
+        obstacleHit,
+        judgement: phaseJudgement,
+      },
+    ];
+
+    playBeatSound(phaseAccuracy);
+    setPhaseResults(nextResults);
+    setPhaseFlash({
+      step: phaseIndex + 1,
+      accuracy: phaseAccuracy,
+      judgement: phaseJudgement,
+      obstacleHit,
+    });
+    setGameState('transition');
+    queueNextPhase(nextResults);
+  }
+
+  const progressRatio =
+    gameState === 'result'
+      ? 1
+      : clamp((phaseResults.length + (gameState === 'transition' ? 1 : 0)) / CHAIN_LENGTH, 0, 1);
+  const liveBattery = result?.accuracy ?? Math.max(1, Math.round(progressRatio * 100));
 
   if (isBooting) {
     return (
@@ -371,6 +525,7 @@ export default function App({ icons }) {
             <span>1%</span>
           </div>
           <h1>Plug it clean</h1>
+          <p className="start-copy">3-beat rhythm chain. Stop the plug three times and build one clean charge.</p>
           <div className="difficulty-picker" aria-label="Difficulty">
             {Object.entries(difficultyOptions).map(([key, option]) => (
               <button
@@ -402,30 +557,66 @@ export default function App({ icons }) {
 
       {screen === 'game' && (
         <section
-          className={`game-stage ${isInNoise ? 'noise-active' : ''}`}
-          onPointerDown={stopCharger}
+          className={`game-stage ${isInNoise ? 'noise-active' : ''} ${
+            gameState === 'transition' ? 'phase-transition' : ''
+          }`}
+          onPointerDown={gameState === 'playing' ? stopCharger : undefined}
         >
-          <div className="battery-meter" aria-label="Battery 1%">
-            <div style={{ width: `${result?.accuracy ?? 1}%` }} />
+          <div className="battery-meter" aria-label={`Battery ${liveBattery}%`}>
+            <div style={{ width: `${liveBattery}%` }} />
           </div>
+
+          <div className="phase-hud">
+            <strong>
+              Beat {Math.min(phaseIndex + 1, CHAIN_LENGTH)}/{CHAIN_LENGTH}
+            </strong>
+            <span>
+              {gameState === 'transition'
+                ? 'Hold the rhythm'
+                : 'Tap when the plug lines up with the moving socket'}
+            </span>
+          </div>
+
+          <div className="chain-meter" aria-label="Charge chain progress">
+            {Array.from({ length: CHAIN_LENGTH }, (_, index) => {
+              const phase = phaseResults[index];
+              const isActive = !phase && index === phaseIndex && gameState !== 'result';
+              return (
+                <div
+                  key={index}
+                  className={[
+                    'chain-node',
+                    phase ? `judgement-${phase.judgement.toLowerCase()}` : '',
+                    isActive ? 'active' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                >
+                  <span>{phase ? `${phase.accuracy}%` : `0${index + 1}`}</span>
+                </div>
+              );
+            })}
+          </div>
+
           <div className="hazard-zone" style={{ left: `${obstaclePosition}%` }}>
             <span />
             <strong>NOISE</strong>
           </div>
+
           {isInNoise && <div className="noise-alert" aria-hidden="true">NOISE</div>}
-          <div className="combo-chip">
-            {difficultyOptions[difficulty].label} · Combo x{combo}
-          </div>
-          <div className="socket" style={{ left: `${targetPosition}%` }}>
+
+          <div className="socket socket-moving" style={{ left: `${targetPosition}%` }}>
             <div className="socket-hole" />
             <div className="socket-hole" />
           </div>
+
+          <div className="target-orbit" style={{ left: `${targetPosition}%` }} aria-hidden="true" />
+
           <div className="track">
-            <div className="target-line" />
             <div
               className={[
                 'charger',
-                gameState === 'result' ? 'stopped' : '',
+                gameState === 'transition' || gameState === 'result' ? 'stopped' : '',
                 isInNoise ? 'in-noise' : '',
                 result ? `judgement-${result.judgement.toLowerCase()}` : '',
                 result?.accuracy === 100 ? 'accuracy-perfect' : '',
@@ -439,7 +630,18 @@ export default function App({ icons }) {
               <span className="charger-cable" />
             </div>
           </div>
+
           {gameState === 'playing' && <p className="tap-label">TAP</p>}
+
+          {gameState === 'transition' && phaseFlash && (
+            <div className={`phase-card judgement-${phaseFlash.judgement.toLowerCase()}`}>
+              <p>Beat {phaseFlash.step} locked</p>
+              <strong>{phaseFlash.accuracy}%</strong>
+              <span>{getJudgementLabel(phaseFlash.judgement)}</span>
+              {phaseFlash.obstacleHit && <em>Noise penalty applied</em>}
+            </div>
+          )}
+
           {gameState === 'result' && result && isResultVisible && (
             <ResultPanel
               result={result}
@@ -494,6 +696,14 @@ function ResultPanel({ result, isSavingScore, onRetry, onLeaderboard, RotateCcw,
       <div className="charge-result">
         <div style={{ width: `${result.accuracy}%` }} />
       </div>
+      <div className="phase-summary">
+        {result.phases.map((phase) => (
+          <div key={phase.step} className={`phase-pill judgement-${phase.judgement.toLowerCase()}`}>
+            <span>Beat {phase.step}</span>
+            <strong>{phase.accuracy}%</strong>
+          </div>
+        ))}
+      </div>
       <p>
         {isSavingScore
           ? 'Saving score'
@@ -502,9 +712,9 @@ function ResultPanel({ result, isSavingScore, onRetry, onLeaderboard, RotateCcw,
             : `Current rank #${result.rank}`}
       </p>
       <p className="result-meta">
-        {result.difficulty}
-        {result.comboBonus > 0 ? ` · Combo bonus +${result.comboBonus}` : ''}
-        {result.obstacleHit ? ` · Noise penalty` : ''}
+        {result.difficulty} chain average {result.rawAccuracy}%
+        {result.consistencyBonus > 0 ? ` | consistency +${result.consistencyBonus}` : ''}
+        {result.obstacleHits > 0 ? ` | noise hits ${result.obstacleHits}` : ''}
       </p>
       <div className="result-actions">
         <button className="primary-button" onClick={onRetry}>
@@ -565,16 +775,12 @@ function LeaderboardPanel({
               <span className="rank">#{entry.rank}</span>
               <span className="nickname">{entry.nickname}</span>
               <span className="accuracy">{entry.accuracy}%</span>
-              <span className="judgement">
-                {getJudgementLabel(entry.judgement)}
-              </span>
+              <span className="judgement">{getJudgementLabel(entry.judgement)}</span>
             </li>
           ))}
         </ol>
       )}
-      {!error && entries.length === 0 && (
-        <div className="empty-state">No scores yet.</div>
-      )}
+      {!error && entries.length === 0 && <div className="empty-state">No scores yet.</div>}
       <button className="secondary-button wide" onClick={onBack}>
         Back
       </button>

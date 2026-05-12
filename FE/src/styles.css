@@ -264,6 +264,13 @@ input:focus {
   flex-wrap: wrap;
 }
 
+.start-copy {
+  max-width: 420px;
+  margin: -6px 0 0;
+  color: var(--muted);
+  font-size: 15px;
+}
+
 .difficulty-picker {
   display: flex;
   gap: 10px;
@@ -322,6 +329,10 @@ input:focus {
   animation: noiseScan 260ms steps(2) infinite;
 }
 
+.game-stage.phase-transition {
+  pointer-events: none;
+}
+
 .battery-meter,
 .charge-result {
   overflow: hidden;
@@ -338,6 +349,25 @@ input:focus {
   width: min(220px, calc(100% - 44px));
 }
 
+.phase-hud {
+  position: absolute;
+  top: 54px;
+  left: 22px;
+  display: grid;
+  gap: 2px;
+}
+
+.phase-hud strong {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 24px;
+  color: var(--white);
+}
+
+.phase-hud span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .combo-chip {
   position: absolute;
   top: 24px;
@@ -350,6 +380,61 @@ input:focus {
   background: rgba(255, 216, 77, 0.08);
   border: 1px solid rgba(255, 216, 77, 0.26);
   border-radius: 999px;
+}
+
+.chain-meter {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  display: flex;
+  gap: 10px;
+}
+
+.chain-node {
+  display: grid;
+  width: 62px;
+  height: 42px;
+  place-items: center;
+  color: var(--muted);
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  transition: transform 160ms ease, border-color 160ms ease, color 160ms ease, background 160ms ease;
+}
+
+.chain-node.active {
+  color: #101510;
+  background: var(--yellow);
+  border-color: var(--yellow);
+  transform: scale(1.05);
+}
+
+.chain-node.judgement-perfect_charge,
+.chain-node.judgement-great {
+  color: #101510;
+  background: var(--mint);
+  border-color: var(--mint);
+}
+
+.chain-node.judgement-good {
+  color: #101510;
+  background: var(--cyan);
+  border-color: var(--cyan);
+}
+
+.chain-node.judgement-weak {
+  color: #101510;
+  background: var(--yellow);
+  border-color: var(--yellow);
+}
+
+.chain-node.judgement-bad,
+.chain-node.judgement-miss {
+  color: var(--white);
+  background: rgba(255, 90, 106, 0.22);
+  border-color: rgba(255, 90, 106, 0.48);
 }
 
 .battery-meter > div,
@@ -379,6 +464,21 @@ input:focus {
     inset 0 -8px 18px rgba(86, 104, 121, 0.22),
     0 16px 34px rgba(0, 0, 0, 0.42),
     0 0 42px rgba(49, 245, 166, 0.2);
+}
+
+.socket-moving {
+  transition: left 80ms linear;
+}
+
+.target-orbit {
+  position: absolute;
+  top: calc(34% - 12px);
+  width: 154px;
+  height: 118px;
+  transform: translateX(-50%);
+  border: 1px dashed rgba(88, 215, 255, 0.28);
+  border-radius: 999px;
+  opacity: 0.8;
 }
 
 .hazard-zone {
@@ -575,6 +675,73 @@ input:focus {
   font-size: 24px;
 }
 
+.phase-card {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  display: grid;
+  min-width: 240px;
+  gap: 2px;
+  padding: 18px 22px;
+  text-align: center;
+  transform: translateX(-50%);
+  background: rgba(34, 40, 50, 0.9);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  animation: panelPop 200ms ease both;
+}
+
+.phase-card p,
+.phase-card em {
+  margin: 0;
+}
+
+.phase-card p {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.phase-card strong {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 58px;
+  line-height: 0.95;
+}
+
+.phase-card span {
+  font-weight: 800;
+}
+
+.phase-card em {
+  color: var(--coral);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.phase-card.judgement-perfect_charge strong,
+.phase-card.judgement-great strong,
+.phase-card.judgement-perfect_charge span,
+.phase-card.judgement-great span {
+  color: var(--mint);
+}
+
+.phase-card.judgement-good strong,
+.phase-card.judgement-good span {
+  color: var(--cyan);
+}
+
+.phase-card.judgement-weak strong,
+.phase-card.judgement-weak span {
+  color: var(--yellow);
+}
+
+.phase-card.judgement-bad strong,
+.phase-card.judgement-bad span,
+.phase-card.judgement-miss strong,
+.phase-card.judgement-miss span {
+  color: var(--coral);
+}
+
 .result-panel {
   position: absolute;
   bottom: 24px;
@@ -695,6 +862,73 @@ input:focus {
   font-size: 13px;
 }
 
+.phase-summary {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 0 10px;
+}
+
+.phase-pill {
+  display: grid;
+  min-width: 88px;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.phase-pill span {
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.phase-pill strong {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 32px;
+  line-height: 0.9;
+}
+
+.phase-pill.judgement-perfect_charge,
+.phase-pill.judgement-great {
+  border-color: rgba(49, 245, 166, 0.45);
+}
+
+.phase-pill.judgement-perfect_charge strong,
+.phase-pill.judgement-great strong {
+  color: var(--mint);
+}
+
+.phase-pill.judgement-good {
+  border-color: rgba(88, 215, 255, 0.42);
+}
+
+.phase-pill.judgement-good strong {
+  color: var(--cyan);
+}
+
+.phase-pill.judgement-weak {
+  border-color: rgba(255, 216, 77, 0.42);
+}
+
+.phase-pill.judgement-weak strong {
+  color: var(--yellow);
+}
+
+.phase-pill.judgement-bad,
+.phase-pill.judgement-miss {
+  border-color: rgba(255, 90, 106, 0.45);
+}
+
+.phase-pill.judgement-bad strong,
+.phase-pill.judgement-miss strong {
+  color: var(--coral);
+}
+
 .leaderboard-stage {
   width: min(100%, 720px);
   margin: 42px auto 0;
@@ -795,10 +1029,38 @@ input:focus {
     min-height: calc(100vh - 100px);
   }
 
+  .phase-hud {
+    top: 58px;
+    right: 18px;
+    left: 18px;
+  }
+
+  .phase-hud span {
+    max-width: 240px;
+  }
+
+  .chain-meter {
+    top: auto;
+    bottom: 92px;
+    right: 18px;
+    left: 18px;
+    justify-content: center;
+  }
+
+  .chain-node {
+    width: 58px;
+    height: 40px;
+  }
+
   .socket {
     top: 34%;
     width: 94px;
     height: 70px;
+  }
+
+  .target-orbit {
+    width: 126px;
+    height: 104px;
   }
 
   .track {
@@ -820,6 +1082,11 @@ input:focus {
 
   .score-readout strong {
     font-size: 62px;
+  }
+
+  .phase-card {
+    min-width: 220px;
+    padding: 16px 18px;
   }
 }
 

@@ -32,3 +32,29 @@ export function getJudgementLabel(judgement) {
   };
   return labels[judgement] ?? judgement;
 }
+
+export function summarizeChain(phases) {
+  const averageAccuracy = Math.round(
+    phases.reduce((total, phase) => total + phase.accuracy, 0) / phases.length,
+  );
+  const perfectCount = phases.filter((phase) => phase.accuracy === 100).length;
+  const greatCount = phases.filter((phase) => phase.accuracy >= 90).length;
+  const obstacleHits = phases.filter((phase) => phase.obstacleHit).length;
+  const consistencyBonus =
+    perfectCount === phases.length
+      ? 6
+      : greatCount === phases.length
+        ? 4
+        : greatCount >= phases.length - 1
+          ? 2
+          : 0;
+
+  return {
+    averageAccuracy,
+    perfectCount,
+    greatCount,
+    obstacleHits,
+    consistencyBonus,
+    accuracy: clamp(averageAccuracy + consistencyBonus, 0, 100),
+  };
+}
