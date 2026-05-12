@@ -1,0 +1,58 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "FE/**"
+      - ".github/workflows/deploy-fe.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy frontend to Vercel
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: FE
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Vercel secrets
+        run: |
+          test -n "$VERCEL_ORG_ID"
+          test -n "$VERCEL_PROJECT_ID"
+          test -n "$VERCEL_TOKEN"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: FE/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build frontend
+        run: pnpm run build
+
+      - name: Pull Vercel project settings
+        run: pnpm dlx vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Build Vercel output
+        run: pnpm dlx vercel build --prod --token="$VERCEL_TOKEN"
+
+      - name: Deploy to Vercel
+        run: pnpm dlx vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
