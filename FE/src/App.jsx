@@ -795,29 +795,45 @@ export default function App({ icons }) {
             </>
           ) : gameState !== 'result' && currentStepType === 'charge' ? (
             <div className="timing-stage timing-charge">
-              <div className="timing-stage-header">
-                <p>{currentStepLabel}</p>
-                <strong>Fill to the target line</strong>
-              </div>
-              <div className="plug-anchor-scene" style={{ left: `${currentPhase?.anchorPosition ?? 50}%` }}>
-                <div className="socket socket-anchored">
-                  <div className="socket-hole" />
-                  <div className="socket-hole" />
+              <div className="charge-stage-shell">
+                <div className="charge-stage-top">
+                  <div className="charge-stage-copy">
+                    <p>{currentStepLabel}</p>
+                    <strong>Hit the line as the charge rises</strong>
+                    <span>One pass only. Miss it and the charge spills past.</span>
+                  </div>
+                  <div
+                    className="plug-anchor-scene compact"
+                    style={{ left: `${currentPhase?.anchorPosition ?? 50}%` }}
+                  >
+                    <div className="socket socket-anchored">
+                      <div className="socket-hole" />
+                      <div className="socket-hole" />
+                    </div>
+                    <div className="charger charger-plugged plugged-visual">
+                      <span className="charger-head" />
+                      <span className="charger-cable" />
+                    </div>
+                  </div>
                 </div>
-                <div className="charger charger-plugged plugged-visual">
-                  <span className="charger-head" />
-                  <span className="charger-cable" />
+                <div className="charge-lane-shell">
+                  <div className="charge-lane-labels">
+                    <span>0%</span>
+                    <strong>TARGET</strong>
+                    <span>100%</span>
+                  </div>
+                  <div className="charge-lane">
+                    <div className="charge-lane-track" />
+                    <div className="charge-lane-fill" style={{ width: `${chargerPosition}%` }} />
+                    <div className="charge-lane-glow" style={{ left: `${chargerPosition}%` }} />
+                    <div className="charge-target-line" style={{ left: `${targetPosition}%` }} />
+                    <div
+                      className="charge-target-band"
+                      style={{ left: `${gaugeTargetStart}%`, width: `${gaugeTargetWidth}%` }}
+                    />
+                  </div>
+                  <p className="charge-lane-hint">Tap as the fill reaches the center line.</p>
                 </div>
-              </div>
-              <div className="charge-lane">
-                <div className="charge-lane-track" />
-                <div className="charge-lane-fill" style={{ width: `${chargerPosition}%` }} />
-                <div className="charge-lane-glow" style={{ left: `${chargerPosition}%` }} />
-                <div className="charge-target-line" style={{ left: `${targetPosition}%` }} />
-                <div
-                  className="charge-target-band"
-                  style={{ left: `${gaugeTargetStart}%`, width: `${gaugeTargetWidth}%` }}
-                />
               </div>
             </div>
           ) : gameState !== 'result' ? (

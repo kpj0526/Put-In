@@ -747,6 +747,12 @@ input:focus {
   transform: translateX(-50%);
 }
 
+.plug-anchor-scene.compact {
+  position: relative;
+  top: auto;
+  transform: none;
+}
+
 .socket-anchored {
   position: relative;
   top: auto;
@@ -799,6 +805,67 @@ input:focus {
   line-height: 0.94;
 }
 
+.charge-stage-shell {
+  display: grid;
+  width: min(100%, 720px);
+  gap: 24px;
+}
+
+.charge-stage-top {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) 1fr;
+  align-items: center;
+  gap: 20px;
+}
+
+.charge-stage-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.charge-stage-copy p,
+.charge-stage-copy strong,
+.charge-stage-copy span {
+  margin: 0;
+}
+
+.charge-stage-copy p {
+  color: var(--mint);
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 18px;
+  letter-spacing: 0.08em;
+}
+
+.charge-stage-copy strong {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 40px;
+  line-height: 0.92;
+}
+
+.charge-stage-copy span {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.charge-lane-shell {
+  display: grid;
+  gap: 10px;
+}
+
+.charge-lane-labels {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--muted);
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 18px;
+}
+
+.charge-lane-labels strong {
+  color: var(--yellow);
+  letter-spacing: 0.08em;
+}
+
 .timing-lane {
   position: relative;
   width: min(100%, 620px);
@@ -815,7 +882,7 @@ input:focus {
 
 .charge-lane {
   position: relative;
-  width: min(100%, 620px);
+  width: 100%;
   height: 84px;
   border: 1px solid rgba(255, 216, 77, 0.18);
   border-radius: 22px;
@@ -878,6 +945,13 @@ input:focus {
   background: #fff7cf;
   box-shadow: 0 0 18px rgba(255, 255, 255, 0.38);
   transform: translate(-50%, -50%);
+}
+
+.charge-lane-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
 }
 
 .timing-target,
@@ -1413,6 +1487,24 @@ input:focus {
 
   .plug-anchor-scene {
     top: 28%;
+  }
+
+  .charge-stage-shell {
+    gap: 18px;
+  }
+
+  .charge-stage-top {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .charge-stage-copy strong {
+    font-size: 34px;
+  }
+
+  .charge-stage-copy span {
+    font-size: 13px;
   }
 
   .timing-stage-header strong {
