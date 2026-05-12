@@ -89,6 +89,18 @@ button:disabled {
   gap: 14px;
 }
 
+.brand-home-button {
+  padding: 0;
+  color: inherit;
+  text-align: left;
+  background: transparent;
+  border: 0;
+}
+
+.brand-home-button:hover {
+  transform: translateY(-1px);
+}
+
 .brand-lockup p,
 .section-heading p {
   margin: 0;
@@ -333,6 +345,15 @@ input:focus {
   pointer-events: none;
 }
 
+.game-stage.phase-transition::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 14, 18, 0.52);
+  backdrop-filter: blur(6px);
+  z-index: 3;
+}
+
 .battery-meter,
 .charge-result {
   overflow: hidden;
@@ -346,7 +367,42 @@ input:focus {
   position: absolute;
   top: 22px;
   left: 22px;
-  width: min(220px, calc(100% - 44px));
+  z-index: 4;
+  width: min(280px, calc(100% - 44px));
+  height: 24px;
+  border-radius: 999px;
+  box-shadow:
+    0 0 0 1px rgba(49, 245, 166, 0.16),
+    0 10px 26px rgba(0, 0, 0, 0.26);
+}
+
+.battery-meter-label {
+  position: absolute;
+  top: 50px;
+  left: 22px;
+  z-index: 4;
+  display: flex;
+  width: min(280px, calc(100% - 44px));
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.battery-meter-label strong,
+.battery-meter-label span {
+  font-family: "Barlow Condensed", sans-serif;
+}
+
+.battery-meter-label strong {
+  color: var(--mint);
+  font-size: 18px;
+  letter-spacing: 0.06em;
+}
+
+.battery-meter-label span {
+  color: var(--yellow);
+  font-size: 28px;
+  line-height: 1;
 }
 
 .phase-hud {
@@ -675,8 +731,105 @@ input:focus {
   font-size: 24px;
 }
 
-.phase-card {
+.timing-stage {
   position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  padding: 120px 32px 72px;
+}
+
+.timing-stage-header {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 28px;
+  text-align: center;
+}
+
+.timing-stage-header p,
+.timing-stage-header strong {
+  margin: 0;
+}
+
+.timing-stage-header p {
+  color: var(--mint);
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 18px;
+  letter-spacing: 0.08em;
+}
+
+.timing-stage-header strong {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 44px;
+  line-height: 0.94;
+}
+
+.timing-lane {
+  position: relative;
+  width: min(100%, 620px);
+  height: 72px;
+  border: 1px solid rgba(88, 215, 255, 0.18);
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(0, 0, 0, 0.18)),
+    rgba(15, 19, 24, 0.92);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+    0 18px 34px rgba(0, 0, 0, 0.28);
+}
+
+.timing-target,
+.timing-cursor {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.timing-target {
+  height: 40px;
+  border-radius: 999px;
+}
+
+.timing-target-charge {
+  background:
+    linear-gradient(90deg, rgba(49, 245, 166, 0.18), rgba(255, 216, 77, 0.3));
+  border: 1px solid rgba(49, 245, 166, 0.55);
+  box-shadow: 0 0 28px rgba(49, 245, 166, 0.18);
+}
+
+.timing-target-sync {
+  background:
+    linear-gradient(90deg, rgba(88, 215, 255, 0.2), rgba(255, 216, 77, 0.24));
+  border: 1px solid rgba(88, 215, 255, 0.62);
+  box-shadow: 0 0 28px rgba(88, 215, 255, 0.18);
+}
+
+.timing-cursor {
+  width: 22px;
+  height: 92px;
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+}
+
+.timing-cursor-charge {
+  background: linear-gradient(180deg, #ffffff 0%, var(--yellow) 100%);
+  box-shadow:
+    0 0 30px rgba(255, 216, 77, 0.32),
+    inset 0 2px 0 rgba(255, 255, 255, 0.78);
+}
+
+.timing-cursor-sync {
+  background: linear-gradient(180deg, #ffffff 0%, var(--cyan) 100%);
+  box-shadow:
+    0 0 30px rgba(88, 215, 255, 0.28),
+    inset 0 2px 0 rgba(255, 255, 255, 0.78);
+}
+
+.phase-card,
+.charge-overlay {
+  position: absolute;
+  z-index: 5;
   bottom: 28px;
   left: 50%;
   display: grid;
@@ -693,52 +846,127 @@ input:focus {
 }
 
 .phase-card p,
-.phase-card em {
+.phase-card em,
+.charge-overlay p,
+.charge-overlay em {
   margin: 0;
 }
 
-.phase-card p {
+.phase-card p,
+.charge-overlay p {
   color: var(--muted);
   font-size: 13px;
 }
 
-.phase-card strong {
+.phase-card strong,
+.charge-overlay strong {
   font-family: "Barlow Condensed", sans-serif;
   font-size: 58px;
   line-height: 0.95;
 }
 
-.phase-card span {
+.phase-card span,
+.charge-overlay span {
   font-weight: 800;
 }
 
-.phase-card em {
+.phase-card em,
+.charge-overlay em {
   color: var(--coral);
   font-size: 12px;
   font-style: normal;
 }
 
+.charge-overlay {
+  width: min(92%, 420px);
+  gap: 14px;
+  bottom: 50%;
+  padding: 24px;
+  transform: translate(-50%, 50%);
+}
+
+.charge-overlay-head {
+  display: grid;
+  gap: 2px;
+  text-align: center;
+}
+
+.charge-overlay-meter {
+  overflow: hidden;
+  height: 28px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #0f1318;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 10px 26px rgba(0, 0, 0, 0.24);
+}
+
+.charge-overlay-meter > div {
+  height: 100%;
+  background: linear-gradient(90deg, var(--mint), var(--yellow));
+  transition: width 860ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.charge-overlay-readout,
+.charge-overlay-next {
+  text-align: center;
+}
+
+.charge-overlay-readout {
+  display: grid;
+  gap: 2px;
+}
+
+.charge-overlay-readout strong {
+  color: var(--yellow);
+  font-size: 72px;
+  line-height: 0.9;
+}
+
+.charge-overlay-readout span {
+  color: var(--mint);
+}
+
+.charge-overlay-next {
+  color: var(--white);
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 20px;
+}
+
 .phase-card.judgement-perfect_charge strong,
 .phase-card.judgement-great strong,
 .phase-card.judgement-perfect_charge span,
-.phase-card.judgement-great span {
+.phase-card.judgement-great span,
+.charge-overlay.judgement-perfect_charge strong,
+.charge-overlay.judgement-great strong,
+.charge-overlay.judgement-perfect_charge span,
+.charge-overlay.judgement-great span {
   color: var(--mint);
 }
 
 .phase-card.judgement-good strong,
-.phase-card.judgement-good span {
+.phase-card.judgement-good span,
+.charge-overlay.judgement-good strong,
+.charge-overlay.judgement-good span {
   color: var(--cyan);
 }
 
 .phase-card.judgement-weak strong,
-.phase-card.judgement-weak span {
+.phase-card.judgement-weak span,
+.charge-overlay.judgement-weak strong,
+.charge-overlay.judgement-weak span {
   color: var(--yellow);
 }
 
 .phase-card.judgement-bad strong,
 .phase-card.judgement-bad span,
 .phase-card.judgement-miss strong,
-.phase-card.judgement-miss span {
+.phase-card.judgement-miss span,
+.charge-overlay.judgement-bad strong,
+.charge-overlay.judgement-bad span,
+.charge-overlay.judgement-miss strong,
+.charge-overlay.judgement-miss span {
   color: var(--coral);
 }
 
@@ -1030,13 +1258,24 @@ input:focus {
   }
 
   .phase-hud {
-    top: 58px;
+    top: 92px;
     right: 18px;
     left: 18px;
   }
 
   .phase-hud span {
     max-width: 240px;
+  }
+
+  .battery-meter {
+    width: min(100%, calc(100% - 36px));
+    left: 18px;
+  }
+
+  .battery-meter-label {
+    top: 54px;
+    left: 18px;
+    width: calc(100% - 36px);
   }
 
   .chain-meter {
@@ -1063,6 +1302,22 @@ input:focus {
     height: 104px;
   }
 
+  .timing-stage {
+    padding: 140px 18px 88px;
+  }
+
+  .timing-stage-header strong {
+    font-size: 34px;
+  }
+
+  .timing-lane {
+    height: 64px;
+  }
+
+  .timing-cursor {
+    height: 82px;
+  }
+
   .track {
     width: 100%;
   }
@@ -1087,6 +1342,15 @@ input:focus {
   .phase-card {
     min-width: 220px;
     padding: 16px 18px;
+  }
+
+  .charge-overlay {
+    width: min(92%, 340px);
+    padding: 20px;
+  }
+
+  .charge-overlay-readout strong {
+    font-size: 60px;
   }
 }
 

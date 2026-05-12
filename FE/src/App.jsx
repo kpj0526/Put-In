@@ -9,6 +9,17 @@ import {
 } from './game';
 
 const CHAIN_LENGTH = 3;
+const chainSteps = ['plug', 'charge', 'sync'];
+const stepLabels = {
+  plug: 'Plug In',
+  charge: 'Charge Hold',
+  sync: 'Power Sync',
+};
+const stepInstructions = {
+  plug: 'Tap when the plug lines up with the moving socket',
+  charge: 'Tap when the charging needle crosses the sweet spot',
+  sync: 'Tap when the sync pulse locks into the narrow core',
+};
 
 const difficultyOptions = {
   easy: {
@@ -48,13 +59,42 @@ const initialAuth = {
 };
 
 function createPhase(index, difficulty) {
+  const stepType = chainSteps[index] ?? 'plug';
   const baseTarget = 42 + Math.random() * 16;
   const obstacleDirection = Math.random() > 0.5 ? 1 : -1;
   const obstacleOffset = 16 + Math.random() * 10;
   const chargerStartsLeft = index % 2 === 0;
+  const gaugeStartsLeft = Math.random() > 0.5;
+  const gaugeTarget = clamp(34 + Math.random() * 32, 24, 76);
+  const gaugeWidths = {
+    easy: { charge: 18, sync: 12 },
+    normal: { charge: 14, sync: 9 },
+    hard: { charge: 10, sync: 6 },
+  };
+  const gaugeSpeeds = {
+    easy: { charge: 0.08, sync: 0.11 },
+    normal: { charge: 0.1, sync: 0.135 },
+    hard: { charge: 0.125, sync: 0.16 },
+  };
+
+  if (stepType !== 'plug') {
+    return {
+      id: `${difficulty}-${stepType}-${index}-${Date.now()}-${Math.random()}`,
+      type: stepType,
+      targetPosition: gaugeTarget,
+      targetWidth: gaugeWidths[difficulty][stepType],
+      chargerPosition: gaugeStartsLeft ? 6 : 94,
+      direction: gaugeStartsLeft ? 1 : -1,
+      gaugeSpeed: gaugeSpeeds[difficulty][stepType],
+      targetDirection: 0,
+      obstaclePosition: -100,
+      speedLevel: 1,
+    };
+  }
 
   return {
     id: `${difficulty}-${index}-${Date.now()}-${Math.random()}`,
+    type: stepType,
     targetPosition: clamp(baseTarget, 28, 72),
     targetDirection: Math.random() > 0.5 ? 1 : -1,
     obstaclePosition: clamp(baseTarget + obstacleDirection * obstacleOffset, 14, 86),
@@ -87,15 +127,16 @@ export default function App({ icons }) {
   const [leaderboardError, setLeaderboardError] = useState('');
   const [isSavingScore, setIsSavingScore] = useState(false);
   const [phaseIndex, setPhaseIndex] = useState(0);
+  const [currentPhase, setCurrentPhase] = useState(null);
   const [phaseResults, setPhaseResults] = useState([]);
   const [phaseFlash, setPhaseFlash] = useState(null);
+  const [displayBattery, setDisplayBattery] = useState(1);
   const isInNoise = gameState === 'playing' && Math.abs(chargerPosition - obstaclePosition) <= 8;
   const frameRef = useRef(null);
   const lastFrameRef = useRef(null);
   const resultTimerRef = useRef(null);
   const phaseTimerRef = useRef(null);
   const speedLevelRef = useRef(1);
-  const currentPhaseRef = useRef(null);
   const beatSoundRef = useRef(null);
   const resultSoundRef = useRef(null);
 
@@ -131,6 +172,33 @@ export default function App({ icons }) {
       const delta = Math.min(time - lastFrame, 32);
       lastFrameRef.current = time;
       const config = difficultyOptions[difficulty];
+      if (!currentPhase) {
+        frameRef.current = requestAnimationFrame(tick);
+        return;
+      }
+
+      if (currentPhase.type !== 'plug') {
+        setChargerPosition((position) => {
+          let nextPosition = position + direction * delta * currentPhase.gaugeSpeed;
+          let nextDirection = direction;
+
+          if (nextPosition >= 96) {
+            nextPosition = 96;
+            nextDirection = -1;
+          }
+          if (nextPosition <= 4) {
+            nextPosition = 4;
+            nextDirection = 1;
+          }
+          if (nextDirection !== direction) {
+            setDirection(nextDirection);
+          }
+          return nextPosition;
+        });
+
+        frameRef.current = requestAnimationFrame(tick);
+        return;
+      }
 
       setChargerPosition((position) => {
         let nextPosition = position + direction * delta * config.speed * speedLevelRef.current;
@@ -268,8 +336,22 @@ export default function App({ icons }) {
     setScreen('start');
   }
 
+  function goToStart() {
+    clearTimeout(resultTimerRef.current);
+    clearTimeout(phaseTimerRef.current);
+    setGameState('idle');
+    setResult(null);
+    setPhaseFlash(null);
+    setPhaseResults([]);
+    setPhaseIndex(0);
+    setCurrentPhase(null);
+    setDisplayBattery(1);
+    setIsResultVisible(false);
+    setScreen('start');
+  }
+
   function applyPhase(nextPhase, nextIndex, nextResults = []) {
-    currentPhaseRef.current = nextPhase;
+    setCurrentPhase(nextPhase);
     setPhaseIndex(nextIndex);
     setPhaseResults(nextResults);
     setPhaseFlash(null);
@@ -290,12 +372,13 @@ export default function App({ icons }) {
     setGameState('playing');
     setIsResultVisible(false);
     setResult(null);
+    setDisplayBattery(1);
   }
 
-  function queueNextPhase(nextResults) {
+  function queueNextPhase(nextResults, nextBattery) {
     const nextIndex = nextResults.length;
     if (nextIndex >= CHAIN_LENGTH) {
-      finalizeRun(nextResults);
+      finalizeRun(nextResults, nextBattery);
       return;
     }
 
@@ -303,7 +386,7 @@ export default function App({ icons }) {
     phaseTimerRef.current = window.setTimeout(() => {
       applyPhase(nextPhase, nextIndex, nextResults);
       setGameState('playing');
-    }, 850);
+    }, 1100);
   }
 
   function playBeatSound(accuracy) {
@@ -312,7 +395,7 @@ export default function App({ icons }) {
 
     beatSound.pause();
     beatSound.currentTime = 0;
-    beatSound.playbackRate = accuracy >= 90 ? 1.06 : accuracy >= 70 ? 1.02 : 0.98;
+    beatSound.playbackRate = accuracy >= 90 ? 1.18 : accuracy >= 70 ? 1.06 : 0.96;
     beatSound.volume = accuracy >= 90 ? 0.16 : accuracy >= 70 ? 0.13 : 0.1;
     beatSound.play().catch(() => {});
   }
@@ -328,13 +411,14 @@ export default function App({ icons }) {
     resultSound.play().catch(() => {});
   }
 
-  async function finalizeRun(phases) {
+  async function finalizeRun(phases, chargedBattery) {
     const config = difficultyOptions[difficulty];
     const summary = summarizeChain(phases);
     const judgement = getJudgement(summary.accuracy);
     playResultSound(summary.accuracy);
 
     setGameState('result');
+    setDisplayBattery(chargedBattery ?? summary.accuracy);
     setResult({
       accuracy: summary.accuracy,
       rawAccuracy: summary.averageAccuracy,
@@ -372,39 +456,63 @@ export default function App({ icons }) {
   function stopCharger() {
     if (gameState !== 'playing') return;
     const config = difficultyOptions[difficulty];
-    const rawAccuracy = calculateAccuracy(chargerPosition, targetPosition, config);
+    const accuracyConfig =
+      currentPhase?.type === 'plug'
+        ? config
+        : {
+            perfectWindow: Math.max(0.18, (currentPhase?.targetWidth ?? 10) * 0.12),
+            distancePenalty: currentPhase?.type === 'sync' ? 5.2 : 4.1,
+          };
+    const rawAccuracy = calculateAccuracy(chargerPosition, targetPosition, accuracyConfig);
     const obstacleDistance = Math.abs(chargerPosition - obstaclePosition);
-    const obstacleHit = obstacleDistance <= 5;
+    const obstacleHit = currentPhase?.type === 'plug' ? obstacleDistance <= 5 : false;
     const phaseAccuracy = clamp(rawAccuracy - (obstacleHit ? config.obstaclePenalty : 0), 0, 100);
     const phaseJudgement = getJudgement(phaseAccuracy);
     const nextResults = [
       ...phaseResults,
       {
         step: phaseIndex + 1,
+        type: currentPhase?.type ?? 'plug',
+        label: stepLabels[currentPhase?.type ?? 'plug'],
         accuracy: phaseAccuracy,
         rawAccuracy,
         obstacleHit,
         judgement: phaseJudgement,
       },
     ];
+    const chainAverage = Math.round(
+      nextResults.reduce((total, phase) => total + phase.accuracy, 0) / nextResults.length,
+    );
+    const nextBattery = clamp(
+      Math.round((chainAverage * nextResults.length) / CHAIN_LENGTH),
+      1,
+      100,
+    );
 
-    playBeatSound(phaseAccuracy);
+    setDisplayBattery(nextBattery);
     setPhaseResults(nextResults);
     setPhaseFlash({
       step: phaseIndex + 1,
+      type: currentPhase?.type ?? 'plug',
+      label: stepLabels[currentPhase?.type ?? 'plug'],
       accuracy: phaseAccuracy,
       judgement: phaseJudgement,
       obstacleHit,
+      battery: nextBattery,
     });
-    setGameState('transition');
-    queueNextPhase(nextResults);
+    setGameState('charging');
+    phaseTimerRef.current = window.setTimeout(() => {
+      playBeatSound(phaseAccuracy);
+      queueNextPhase(nextResults, nextBattery);
+    }, 220);
   }
 
-  const progressRatio =
-    gameState === 'result'
-      ? 1
-      : clamp((phaseResults.length + (gameState === 'transition' ? 1 : 0)) / CHAIN_LENGTH, 0, 1);
-  const liveBattery = result?.accuracy ?? Math.max(1, Math.round(progressRatio * 100));
+  const liveBattery = result?.accuracy ?? displayBattery;
+  const currentStepType = currentPhase?.type ?? chainSteps[phaseIndex] ?? 'plug';
+  const currentStepLabel = stepLabels[currentStepType];
+  const currentInstruction = stepInstructions[currentStepType];
+  const gaugeTargetStart = clamp(targetPosition - (currentPhase?.targetWidth ?? 10) / 2, 4, 92);
+  const gaugeTargetWidth = currentPhase?.targetWidth ?? 10;
 
   if (isBooting) {
     return (
@@ -504,7 +612,7 @@ export default function App({ icons }) {
   return (
     <main className="app-shell">
       <header className="top-bar">
-        <div className="brand-lockup compact">
+        <button className="brand-lockup compact brand-home-button" onClick={goToStart}>
           <div className="brand-icon">
             <PlugZap size={24} />
           </div>
@@ -512,7 +620,7 @@ export default function App({ icons }) {
             <p>PLUG RUSH</p>
             <strong>{user.nickname}</strong>
           </div>
-        </div>
+        </button>
         <button className="icon-button" aria-label="Log out" onClick={handleLogout}>
           <LogOut size={20} />
         </button>
@@ -558,22 +666,26 @@ export default function App({ icons }) {
       {screen === 'game' && (
         <section
           className={`game-stage ${isInNoise ? 'noise-active' : ''} ${
-            gameState === 'transition' ? 'phase-transition' : ''
+            gameState === 'charging' ? 'phase-transition' : ''
           }`}
           onPointerDown={gameState === 'playing' ? stopCharger : undefined}
         >
           <div className="battery-meter" aria-label={`Battery ${liveBattery}%`}>
             <div style={{ width: `${liveBattery}%` }} />
           </div>
+          <div className="battery-meter-label">
+            <strong>BATTERY</strong>
+            <span>{liveBattery}%</span>
+          </div>
 
           <div className="phase-hud">
             <strong>
-              Beat {Math.min(phaseIndex + 1, CHAIN_LENGTH)}/{CHAIN_LENGTH}
+              {currentStepLabel} {Math.min(phaseIndex + 1, CHAIN_LENGTH)}/{CHAIN_LENGTH}
             </strong>
             <span>
-              {gameState === 'transition'
-                ? 'Hold the rhythm'
-                : 'Tap when the plug lines up with the moving socket'}
+              {gameState === 'charging'
+                ? 'Charging up before the next plug'
+                : currentInstruction}
             </span>
           </div>
 
@@ -592,52 +704,85 @@ export default function App({ icons }) {
                     .filter(Boolean)
                     .join(' ')}
                 >
-                  <span>{phase ? `${phase.accuracy}%` : `0${index + 1}`}</span>
+                  <span>{phase ? `${phase.accuracy}%` : stepLabels[chainSteps[index]].slice(0, 2).toUpperCase()}</span>
                 </div>
               );
             })}
           </div>
 
-          <div className="hazard-zone" style={{ left: `${obstaclePosition}%` }}>
-            <span />
-            <strong>NOISE</strong>
-          </div>
+          {currentStepType === 'plug' ? (
+            <>
+              <div className="hazard-zone" style={{ left: `${obstaclePosition}%` }}>
+                <span />
+                <strong>NOISE</strong>
+              </div>
 
-          {isInNoise && <div className="noise-alert" aria-hidden="true">NOISE</div>}
+              {isInNoise && <div className="noise-alert" aria-hidden="true">NOISE</div>}
 
-          <div className="socket socket-moving" style={{ left: `${targetPosition}%` }}>
-            <div className="socket-hole" />
-            <div className="socket-hole" />
-          </div>
+              <div className="socket socket-moving" style={{ left: `${targetPosition}%` }}>
+                <div className="socket-hole" />
+                <div className="socket-hole" />
+              </div>
 
-          <div className="target-orbit" style={{ left: `${targetPosition}%` }} aria-hidden="true" />
+              <div className="target-orbit" style={{ left: `${targetPosition}%` }} aria-hidden="true" />
 
-          <div className="track">
-            <div
-              className={[
-                'charger',
-                gameState === 'transition' || gameState === 'result' ? 'stopped' : '',
-                isInNoise ? 'in-noise' : '',
-                result ? `judgement-${result.judgement.toLowerCase()}` : '',
-                result?.accuracy === 100 ? 'accuracy-perfect' : '',
-                result?.accuracy >= 95 && result?.accuracy < 100 ? 'accuracy-super' : '',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-              style={{ left: `${chargerPosition}%` }}
-            >
-              <span className="charger-head" />
-              <span className="charger-cable" />
+              <div className="track">
+                <div
+                  className={[
+                    'charger',
+                    gameState === 'charging' || gameState === 'result' ? 'stopped' : '',
+                    isInNoise ? 'in-noise' : '',
+                    result ? `judgement-${result.judgement.toLowerCase()}` : '',
+                    result?.accuracy === 100 ? 'accuracy-perfect' : '',
+                    result?.accuracy >= 95 && result?.accuracy < 100 ? 'accuracy-super' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                  style={{ left: `${chargerPosition}%` }}
+                >
+                  <span className="charger-head" />
+                  <span className="charger-cable" />
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className={`timing-stage timing-${currentStepType}`}>
+              <div className="timing-stage-header">
+                <p>{currentStepLabel}</p>
+                <strong>{currentStepType === 'charge' ? 'Hit the charge band' : 'Hit the sync core'}</strong>
+              </div>
+              <div className="timing-lane">
+                <div
+                  className={`timing-target timing-target-${currentStepType}`}
+                  style={{ left: `${gaugeTargetStart}%`, width: `${gaugeTargetWidth}%` }}
+                />
+                <div
+                  className={`timing-cursor timing-cursor-${currentStepType}`}
+                  style={{ left: `${chargerPosition}%` }}
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           {gameState === 'playing' && <p className="tap-label">TAP</p>}
 
-          {gameState === 'transition' && phaseFlash && (
-            <div className={`phase-card judgement-${phaseFlash.judgement.toLowerCase()}`}>
-              <p>Beat {phaseFlash.step} locked</p>
-              <strong>{phaseFlash.accuracy}%</strong>
-              <span>{getJudgementLabel(phaseFlash.judgement)}</span>
+          {gameState === 'charging' && phaseFlash && (
+            <div className={`charge-overlay judgement-${phaseFlash.judgement.toLowerCase()}`}>
+              <div className="charge-overlay-head">
+                <p>{phaseFlash.label} cleared</p>
+                <strong>{phaseFlash.accuracy}%</strong>
+                <span>{getJudgementLabel(phaseFlash.judgement)}</span>
+              </div>
+              <div className="charge-overlay-meter">
+                <div style={{ width: `${phaseFlash.battery}%` }} />
+              </div>
+              <div className="charge-overlay-readout">
+                <strong>{phaseFlash.battery}%</strong>
+                <span>Battery charged</span>
+              </div>
+              <p className="charge-overlay-next">
+                {phaseFlash.step < CHAIN_LENGTH ? 'Next plug incoming' : 'Finalizing chain'}
+              </p>
               {phaseFlash.obstacleHit && <em>Noise penalty applied</em>}
             </div>
           )}
@@ -699,7 +844,7 @@ function ResultPanel({ result, isSavingScore, onRetry, onLeaderboard, RotateCcw,
       <div className="phase-summary">
         {result.phases.map((phase) => (
           <div key={phase.step} className={`phase-pill judgement-${phase.judgement.toLowerCase()}`}>
-            <span>Beat {phase.step}</span>
+            <span>{phase.label}</span>
             <strong>{phase.accuracy}%</strong>
           </div>
         ))}
