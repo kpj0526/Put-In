@@ -17,7 +17,7 @@ const stepLabels = {
 };
 const stepInstructions = {
   plug: 'Tap when the plug lines up with the moving socket',
-  charge: 'Tap when the charging needle crosses the sweet spot',
+  charge: 'Tap when the charge fill reaches the target line',
   sync: 'Tap when the sync pulse locks into the narrow core',
 };
 
@@ -64,7 +64,6 @@ function createPhase(index, difficulty) {
   const obstacleDirection = Math.random() > 0.5 ? 1 : -1;
   const obstacleOffset = 16 + Math.random() * 10;
   const chargerStartsLeft = index % 2 === 0;
-  const gaugeStartsLeft = Math.random() > 0.5;
   const gaugeTarget = clamp(34 + Math.random() * 32, 24, 76);
   const gaugeWidths = {
     easy: { charge: 18, sync: 12 },
@@ -77,7 +76,23 @@ function createPhase(index, difficulty) {
     hard: { charge: 0.125, sync: 0.16 },
   };
 
-  if (stepType !== 'plug') {
+  if (stepType === 'charge') {
+    return {
+      id: `${difficulty}-${stepType}-${index}-${Date.now()}-${Math.random()}`,
+      type: stepType,
+      targetPosition: gaugeTarget,
+      targetWidth: gaugeWidths[difficulty][stepType],
+      chargerPosition: 0,
+      direction: 1,
+      gaugeSpeed: gaugeSpeeds[difficulty][stepType],
+      targetDirection: 0,
+      obstaclePosition: -100,
+      speedLevel: 1,
+    };
+  }
+
+  if (stepType === 'sync') {
+    const gaugeStartsLeft = Math.random() > 0.5;
     return {
       id: `${difficulty}-${stepType}-${index}-${Date.now()}-${Math.random()}`,
       type: stepType,
@@ -102,6 +117,28 @@ function createPhase(index, difficulty) {
     direction: chargerStartsLeft ? 1 : -1,
     speedLevel: 1 + index * 0.08,
   };
+}
+
+function getPhaseAccuracyOptions(phaseType, difficultyKey, baseConfig) {
+  if (phaseType === 'charge') {
+    const chargeProfiles = {
+      easy: { perfectWindow: 1.8, distancePenalty: 3.2 },
+      normal: { perfectWindow: 1.25, distancePenalty: 4.1 },
+      hard: { perfectWindow: 0.85, distancePenalty: 5.1 },
+    };
+    return chargeProfiles[difficultyKey];
+  }
+
+  if (phaseType === 'sync') {
+    const syncProfiles = {
+      easy: { perfectWindow: 1.1, distancePenalty: 4.5 },
+      normal: { perfectWindow: 0.72, distancePenalty: 5.4 },
+      hard: { perfectWindow: 0.45, distancePenalty: 6.4 },
+    };
+    return syncProfiles[difficultyKey];
+  }
+
+  return baseConfig;
 }
 
 export default function App({ icons }) {
@@ -177,7 +214,17 @@ export default function App({ icons }) {
         return;
       }
 
-      if (currentPhase.type !== 'plug') {
+      if (currentPhase.type === 'charge') {
+        setChargerPosition((position) => {
+          const nextPosition = position + delta * currentPhase.gaugeSpeed;
+          return nextPosition >= 100 ? 0 : nextPosition;
+        });
+
+        frameRef.current = requestAnimationFrame(tick);
+        return;
+      }
+
+      if (currentPhase.type === 'sync') {
         setChargerPosition((position) => {
           let nextPosition = position + direction * delta * currentPhase.gaugeSpeed;
           let nextDirection = direction;
@@ -456,13 +503,7 @@ export default function App({ icons }) {
   function stopCharger() {
     if (gameState !== 'playing') return;
     const config = difficultyOptions[difficulty];
-    const accuracyConfig =
-      currentPhase?.type === 'plug'
-        ? config
-        : {
-            perfectWindow: Math.max(0.18, (currentPhase?.targetWidth ?? 10) * 0.12),
-            distancePenalty: currentPhase?.type === 'sync' ? 5.2 : 4.1,
-          };
+    const accuracyConfig = getPhaseAccuracyOptions(currentPhase?.type, difficulty, config);
     const rawAccuracy = calculateAccuracy(chargerPosition, targetPosition, accuracyConfig);
     const obstacleDistance = Math.abs(chargerPosition - obstaclePosition);
     const obstacleHit = currentPhase?.type === 'plug' ? obstacleDistance <= 5 : false;
@@ -745,11 +786,28 @@ export default function App({ icons }) {
                 </div>
               </div>
             </>
+          ) : currentStepType === 'charge' ? (
+            <div className="timing-stage timing-charge">
+              <div className="timing-stage-header">
+                <p>{currentStepLabel}</p>
+                <strong>Fill to the target line</strong>
+              </div>
+              <div className="charge-lane">
+                <div className="charge-lane-track" />
+                <div className="charge-lane-fill" style={{ width: `${chargerPosition}%` }} />
+                <div className="charge-lane-glow" style={{ left: `${chargerPosition}%` }} />
+                <div className="charge-target-line" style={{ left: `${targetPosition}%` }} />
+                <div
+                  className="charge-target-band"
+                  style={{ left: `${gaugeTargetStart}%`, width: `${gaugeTargetWidth}%` }}
+                />
+              </div>
+            </div>
           ) : (
             <div className={`timing-stage timing-${currentStepType}`}>
               <div className="timing-stage-header">
                 <p>{currentStepLabel}</p>
-                <strong>{currentStepType === 'charge' ? 'Hit the charge band' : 'Hit the sync core'}</strong>
+                <strong>Hit the sync core</strong>
               </div>
               <div className="timing-lane">
                 <div

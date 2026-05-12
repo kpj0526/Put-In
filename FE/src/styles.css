@@ -737,7 +737,7 @@ input:focus {
   z-index: 2;
   display: grid;
   place-items: center;
-  padding: 120px 32px 72px;
+  padding: 150px 32px 96px;
 }
 
 .timing-stage-header {
@@ -777,6 +777,73 @@ input:focus {
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.03),
     0 18px 34px rgba(0, 0, 0, 0.28);
+}
+
+.charge-lane {
+  position: relative;
+  width: min(100%, 620px);
+  height: 84px;
+  border: 1px solid rgba(255, 216, 77, 0.18);
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(0, 0, 0, 0.18)),
+    rgba(15, 19, 24, 0.94);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+    0 18px 34px rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+}
+
+.charge-lane-track,
+.charge-lane-fill,
+.charge-target-band,
+.charge-target-line,
+.charge-lane-glow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.charge-lane-track {
+  left: 18px;
+  right: 18px;
+  height: 26px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.charge-lane-fill {
+  left: 18px;
+  height: 26px;
+  max-width: calc(100% - 36px);
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--mint), var(--yellow));
+  box-shadow: 0 0 24px rgba(255, 216, 77, 0.24);
+}
+
+.charge-lane-glow {
+  width: 18px;
+  height: 52px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 216, 77, 0.9));
+  box-shadow: 0 0 28px rgba(255, 216, 77, 0.38);
+  transform: translate(-50%, -50%);
+}
+
+.charge-target-band {
+  height: 38px;
+  border-radius: 999px;
+  background: rgba(255, 216, 77, 0.18);
+  border: 1px solid rgba(255, 216, 77, 0.45);
+}
+
+.charge-target-line {
+  width: 4px;
+  height: 64px;
+  border-radius: 999px;
+  background: #fff7cf;
+  box-shadow: 0 0 18px rgba(255, 255, 255, 0.38);
+  transform: translate(-50%, -50%);
 }
 
 .timing-target,
@@ -824,6 +891,10 @@ input:focus {
   box-shadow:
     0 0 30px rgba(88, 215, 255, 0.28),
     inset 0 2px 0 rgba(255, 255, 255, 0.78);
+}
+
+.timing-sync .timing-lane {
+  height: 86px;
 }
 
 .phase-card,
@@ -1303,7 +1374,7 @@ input:focus {
   }
 
   .timing-stage {
-    padding: 140px 18px 88px;
+    padding: 156px 18px 96px;
   }
 
   .timing-stage-header strong {
@@ -1312,6 +1383,10 @@ input:focus {
 
   .timing-lane {
     height: 64px;
+  }
+
+  .charge-lane {
+    height: 76px;
   }
 
   .timing-cursor {
